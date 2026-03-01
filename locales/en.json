@@ -27,6 +27,9 @@
         "status": "Status",
         "triggered": "Triggered",
         "warnings": "Warnings",
+        "theorem_results": "Theorem Results",
+        "communities": "Communities",
+        "cliques": "Cliques",
         "disclaimer": "This is a suspicion score, not a verdict. Final decision rests with a human."
     },
     "levels": {

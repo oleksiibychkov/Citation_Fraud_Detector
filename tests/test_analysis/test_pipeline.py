@@ -40,7 +40,7 @@ class TestAnalysisPipeline:
         assert result.fraud_score >= 0.0
         assert result.fraud_score <= 1.0
         assert result.confidence_level in ("normal", "low", "moderate", "high", "critical")
-        assert len(result.indicators) == 5  # SCR, MCR, CB, TA, HTA
+        assert len(result.indicators) >= 7  # SCR, MCR, CB, TA, HTA, RLA, GIC (+centrality if graph)
 
     def test_insufficient_data(self, settings):
         """Author with too few publications/citations should get insufficient_data status."""

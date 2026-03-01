@@ -45,6 +45,14 @@ def export_to_json(result: AnalysisResult, output_path: Path, settings: Settings
             }
             for ind in result.indicators
         ],
+        "theorem_results": [
+            {
+                "theorem_number": tr.theorem_number,
+                "passed": tr.passed,
+                "details": tr.details,
+            }
+            for tr in result.theorem_results
+        ],
         "thresholds": {
             "min_publications": s.min_publications,
             "min_citations": s.min_citations,
@@ -54,6 +62,13 @@ def export_to_json(result: AnalysisResult, output_path: Path, settings: Settings
             "scr_high_threshold": s.scr_high_threshold,
             "cb_threshold": s.cb_threshold,
             "ta_z_threshold": s.ta_z_threshold,
+            "rla_threshold": s.rla_threshold,
+            "gic_threshold": s.gic_threshold,
+            "eigenvector_threshold": s.eigenvector_threshold,
+            "betweenness_threshold": s.betweenness_threshold,
+            "pagerank_threshold": s.pagerank_threshold,
+            "community_density_ratio_threshold": s.community_density_ratio_threshold,
+            "cantelli_z_threshold": s.cantelli_z_threshold,
         },
     }
 

@@ -27,3 +27,11 @@ class IdentityMismatchError(CFDError):
 
 class ValidationError(CFDError):
     """Input validation failed."""
+
+
+class Neo4jConnectionError(CFDError):
+    """Neo4j connection failed."""
+
+
+class GraphEngineError(CFDError):
+    """Graph engine computation failed."""

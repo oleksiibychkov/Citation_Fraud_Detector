@@ -5,13 +5,20 @@ from __future__ import annotations
 from cfd.config.settings import Settings
 from cfd.graph.metrics import IndicatorResult
 
-# Default weights for MVP indicators
+# Full weights for 12 indicators (backward-compatible: score = weighted avg of available)
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "SCR": 0.20,
-    "MCR": 0.25,
-    "CB": 0.20,
-    "TA": 0.20,
-    "HTA": 0.15,
+    "SCR": 0.12,
+    "MCR": 0.15,
+    "CB": 0.10,
+    "TA": 0.12,
+    "HTA": 0.08,
+    "RLA": 0.08,
+    "GIC": 0.08,
+    "EIGEN": 0.05,
+    "BETWEENNESS": 0.05,
+    "PAGERANK": 0.07,
+    "COMMUNITY": 0.05,
+    "CLIQUE": 0.05,
 }
 
 CONFIDENCE_LEVELS: list[tuple[float, float, str]] = [
@@ -54,7 +61,42 @@ def _normalize_indicator(indicator: IndicatorResult, settings: Settings) -> floa
             return 1.0
         return value / (settings.cb_threshold * 2)
 
-    # TA and HTA are already normalized to [0, 1]
+    if itype == "RLA":
+        if value <= 0:
+            return 0.0
+        if value >= settings.rla_threshold * 2:
+            return 1.0
+        return value / (settings.rla_threshold * 2)
+
+    if itype == "GIC":
+        if value <= 0:
+            return 0.0
+        if value >= settings.gic_threshold * 1.5:
+            return 1.0
+        return value / (settings.gic_threshold * 1.5)
+
+    if itype == "EIGEN":
+        if value <= 0:
+            return 0.0
+        if value >= settings.eigenvector_threshold * 2:
+            return 1.0
+        return value / (settings.eigenvector_threshold * 2)
+
+    if itype == "BETWEENNESS":
+        if value <= 0:
+            return 0.0
+        if value >= settings.betweenness_threshold * 2:
+            return 1.0
+        return value / (settings.betweenness_threshold * 2)
+
+    if itype == "PAGERANK":
+        if value <= 0:
+            return 0.0
+        if value >= settings.pagerank_threshold * 2:
+            return 1.0
+        return value / (settings.pagerank_threshold * 2)
+
+    # TA, HTA, COMMUNITY, CLIQUE are already normalized to [0, 1]
     return min(max(value, 0.0), 1.0)
 
 
@@ -76,6 +118,20 @@ def _is_triggered(indicator: IndicatorResult, settings: Settings) -> bool:
     if itype == "HTA":
         max_z = indicator.details.get("max_z_score", 0)
         return max_z > settings.ta_z_threshold
+    if itype == "RLA":
+        return value > settings.rla_threshold
+    if itype == "GIC":
+        return value > settings.gic_threshold
+    if itype == "EIGEN":
+        return value > settings.eigenvector_threshold
+    if itype == "BETWEENNESS":
+        return value > settings.betweenness_threshold
+    if itype == "PAGERANK":
+        return value > settings.pagerank_threshold
+    if itype == "COMMUNITY":
+        return value > 0.5
+    if itype == "CLIQUE":
+        return value > 0.5
 
     return False
 

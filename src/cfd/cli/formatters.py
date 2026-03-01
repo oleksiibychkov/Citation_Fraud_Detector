@@ -70,6 +70,20 @@ def format_results_table(result: AnalysisResult) -> None:
         )
     )
 
+    # Theorem results
+    if result.theorem_results:
+        theorem_table = Table(title=f"\n{t('report.theorem_results')}")
+        theorem_table.add_column("Theorem", style="cyan", min_width=12)
+        theorem_table.add_column("Passed", justify="center", min_width=8)
+        theorem_table.add_column("Details", min_width=30)
+
+        for tr in result.theorem_results:
+            passed_str = "[red]Yes[/red]" if tr.passed else "[green]No[/green]"
+            details_str = ", ".join(f"{k}: {v}" for k, v in tr.details.items() if k != "status")
+            theorem_table.add_row(f"T{tr.theorem_number}", passed_str, details_str[:60])
+
+        console.print(theorem_table)
+
     # Warnings
     if result.warnings:
         for w in result.warnings:
