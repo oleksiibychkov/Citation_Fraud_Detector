@@ -1,0 +1,39 @@
+{
+    "info": {
+        "analyzing": "Аналіз автора: {author}...",
+        "exported": "Звіт збережено: {path}",
+        "batch_start": "Batch-аналіз: {count} авторів",
+        "batch_progress": "Обробка {current}/{total}: {author}",
+        "batch_complete": "Batch-аналіз завершено. Результати: {output_dir}",
+        "batch_skipped": "Пропущено (помилка): {author} — {reason}",
+        "insufficient_data": "Недостатньо даних для аналізу",
+        "analysis_complete": "Аналіз завершено"
+    },
+    "error": {
+        "id_required": "Потрібно вказати Scopus ID або ORCID",
+        "author_not_found": "Автора не знайдено: {author}",
+        "api_error": "Помилка API: {message}",
+        "rate_limit": "Перевищено ліміт запитів. Очікування...",
+        "identity_mismatch": "ORCID та Scopus ID вказують на різних людей",
+        "invalid_csv": "Помилка у CSV-файлі: {message}",
+        "surname_mismatch": "Прізвище не збігається: введено '{input}', API повертає '{api}'. Підтвердіть?"
+    },
+    "report": {
+        "title": "Звіт CFD",
+        "author_info": "Інформація про автора",
+        "indicators": "Індикатори",
+        "fraud_score": "Оцінка підозрілості",
+        "confidence_level": "Рівень впевненості",
+        "status": "Статус",
+        "triggered": "Спрацьовано",
+        "warnings": "Попередження",
+        "disclaimer": "Це оцінка підозрілості, а не вирок. Остаточне рішення приймає людина."
+    },
+    "levels": {
+        "normal": "Нормальний",
+        "low": "Низький",
+        "moderate": "Помірний",
+        "high": "Високий",
+        "critical": "Критичний"
+    }
+}

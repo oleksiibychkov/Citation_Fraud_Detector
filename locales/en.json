@@ -1,0 +1,39 @@
+{
+    "info": {
+        "analyzing": "Analyzing author: {author}...",
+        "exported": "Report saved: {path}",
+        "batch_start": "Batch analysis: {count} authors",
+        "batch_progress": "Processing {current}/{total}: {author}",
+        "batch_complete": "Batch analysis complete. Results: {output_dir}",
+        "batch_skipped": "Skipped (error): {author} — {reason}",
+        "insufficient_data": "Insufficient data for analysis",
+        "analysis_complete": "Analysis complete"
+    },
+    "error": {
+        "id_required": "Scopus ID or ORCID is required",
+        "author_not_found": "Author not found: {author}",
+        "api_error": "API error: {message}",
+        "rate_limit": "Rate limit exceeded. Waiting...",
+        "identity_mismatch": "ORCID and Scopus ID point to different people",
+        "invalid_csv": "CSV file error: {message}",
+        "surname_mismatch": "Surname mismatch: input='{input}', API='{api}'. Confirm?"
+    },
+    "report": {
+        "title": "CFD Report",
+        "author_info": "Author Information",
+        "indicators": "Indicators",
+        "fraud_score": "Fraud Score",
+        "confidence_level": "Confidence Level",
+        "status": "Status",
+        "triggered": "Triggered",
+        "warnings": "Warnings",
+        "disclaimer": "This is a suspicion score, not a verdict. Final decision rests with a human."
+    },
+    "levels": {
+        "normal": "Normal",
+        "low": "Low",
+        "moderate": "Moderate",
+        "high": "High",
+        "critical": "Critical"
+    }
+}

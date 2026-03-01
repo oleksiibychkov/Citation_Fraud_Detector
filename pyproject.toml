@@ -1,0 +1,48 @@
+[project]
+name = "citation-fraud-detector"
+version = "0.1.0"
+description = "Multi-level system for detecting anomalous citation patterns in scientometric databases"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+    "click>=8.1",
+    "httpx>=0.27",
+    "pydantic>=2.5",
+    "pydantic-settings>=2.1",
+    "supabase>=2.0",
+    "networkx>=3.2",
+    "numpy>=1.26",
+    "rich>=13.0",
+    "tenacity>=8.2",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-mock>=3.12",
+    "respx>=0.21",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+cfd = "cfd.cli.main:cli"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

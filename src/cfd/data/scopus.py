@@ -1,0 +1,214 @@
+"""Scopus API data source strategy."""
+
+from __future__ import annotations
+
+import contextlib
+import logging
+from datetime import date
+
+from cfd.data.http_client import CachedHttpClient
+from cfd.data.models import AuthorProfile, Citation, Publication
+from cfd.data.strategy import DataSourceStrategy
+from cfd.data.validators import check_surname_match
+from cfd.exceptions import AuthorNotFoundError, ValidationError
+
+logger = logging.getLogger(__name__)
+
+SCOPUS_BASE = "https://api.elsevier.com/content"
+
+
+class ScopusStrategy(DataSourceStrategy):
+    """Data source strategy for Scopus API."""
+
+    def __init__(self, http_client: CachedHttpClient, api_key: str):
+        if not api_key:
+            raise ValidationError("Scopus API key is required")
+        self._http = http_client
+        self._api_key = api_key
+
+    def _headers(self) -> dict:
+        return {
+            "X-ELS-APIKey": self._api_key,
+            "Accept": "application/json",
+        }
+
+    def fetch_author(
+        self,
+        surname: str,
+        *,
+        scopus_id: str | None = None,
+        orcid: str | None = None,
+    ) -> AuthorProfile:
+        """Fetch author profile from Scopus."""
+        author_data = None
+
+        if scopus_id:
+            author_data = self._fetch_by_scopus_id(scopus_id)
+        elif orcid:
+            author_data = self._fetch_by_orcid(orcid)
+        else:
+            author_data = self._fetch_by_name(surname)
+
+        if author_data is None:
+            raise AuthorNotFoundError(f"Author not found in Scopus: {surname}")
+
+        profile = self._parse_author(author_data, surname)
+
+        match, warning = check_surname_match(surname, profile.full_name or "")
+        if not match:
+            logger.warning(warning)
+
+        return profile
+
+    def _fetch_by_scopus_id(self, scopus_id: str) -> dict | None:
+        url = f"{SCOPUS_BASE}/author/author_id/{scopus_id}"
+        try:
+            data = self._http.get(url, headers=self._headers(), source_api="scopus")
+            return data.get("author-retrieval-response", [{}])[0]
+        except Exception:
+            return None
+
+    def _fetch_by_orcid(self, orcid: str) -> dict | None:
+        url = f"{SCOPUS_BASE}/search/author"
+        params = {"query": f"orcid({orcid})"}
+        try:
+            data = self._http.get(url, params=params, headers=self._headers(), source_api="scopus")
+            results = data.get("search-results", {}).get("entry", [])
+            if results and results[0].get("dc:identifier"):
+                author_id = results[0]["dc:identifier"].replace("AUTHOR_ID:", "")
+                return self._fetch_by_scopus_id(author_id)
+        except Exception:
+            pass
+        return None
+
+    def _fetch_by_name(self, name: str) -> dict | None:
+        url = f"{SCOPUS_BASE}/search/author"
+        params = {"query": f"authlast({name})"}
+        try:
+            data = self._http.get(url, params=params, headers=self._headers(), source_api="scopus")
+            results = data.get("search-results", {}).get("entry", [])
+            if results and results[0].get("dc:identifier"):
+                author_id = results[0]["dc:identifier"].replace("AUTHOR_ID:", "")
+                return self._fetch_by_scopus_id(author_id)
+        except Exception:
+            pass
+        return None
+
+    def _parse_author(self, data: dict, surname: str) -> AuthorProfile:
+        """Parse Scopus author retrieval response."""
+        core = data.get("coredata", {})
+        profile_data = data.get("author-profile", {})
+        preferred_name = profile_data.get("preferred-name", {})
+
+        full_name = f"{preferred_name.get('given-name', '')} {preferred_name.get('surname', '')}".strip()
+        scopus_id = core.get("dc:identifier", "").replace("AUTHOR_ID:", "")
+
+        # Get ORCID if available
+        orcid = None
+        for id_entry in data.get("coredata", {}).get("link", []):
+            if "orcid" in str(id_entry.get("@href", "")):
+                orcid = id_entry.get("@href", "").split("/")[-1]
+
+        # Institution
+        institution = None
+        affiliation_history = profile_data.get("affiliation-history", {}).get("affiliation", [])
+        if affiliation_history:
+            if isinstance(affiliation_history, dict):
+                affiliation_history = [affiliation_history]
+            institution = affiliation_history[0].get("ip-doc", {}).get("afdispname")
+
+        # Subject areas
+        subject_areas = data.get("subject-areas", {}).get("subject-area", [])
+        discipline = subject_areas[0].get("$") if subject_areas else None
+
+        return AuthorProfile(
+            scopus_id=scopus_id or None,
+            orcid=orcid,
+            surname=surname,
+            full_name=full_name or None,
+            institution=institution,
+            discipline=discipline,
+            h_index=int(core.get("h-index", 0)) if core.get("h-index") else None,
+            publication_count=int(core.get("document-count", 0)) if core.get("document-count") else None,
+            citation_count=int(core.get("citation-count", 0)) if core.get("citation-count") else None,
+            source_api="scopus",
+            raw_data=data,
+        )
+
+    def fetch_publications(self, author: AuthorProfile) -> list[Publication]:
+        """Fetch publications from Scopus Search API."""
+        if not author.scopus_id:
+            return []
+
+        publications = []
+        start = 0
+        count = 25
+
+        while True:
+            url = f"{SCOPUS_BASE}/search/scopus"
+            params = {
+                "query": f"AU-ID({author.scopus_id})",
+                "count": str(count),
+                "start": str(start),
+            }
+            try:
+                data = self._http.get(url, params=params, headers=self._headers(), source_api="scopus")
+            except Exception:
+                logger.warning("Failed to fetch Scopus publications at offset %d", start)
+                break
+
+            entries = data.get("search-results", {}).get("entry", [])
+            if not entries:
+                break
+
+            for entry in entries:
+                pub = self._parse_publication(entry)
+                if pub:
+                    publications.append(pub)
+
+            total = int(data.get("search-results", {}).get("opensearch:totalResults", 0))
+            start += count
+            if start >= total:
+                break
+
+        logger.info("Fetched %d publications from Scopus for %s", len(publications), author.full_name)
+        return publications
+
+    def _parse_publication(self, entry: dict) -> Publication | None:
+        """Parse a Scopus search result entry."""
+        eid = entry.get("eid", "")
+        if not eid:
+            return None
+
+        pub_date = None
+        date_str = entry.get("prism:coverDate")
+        if date_str:
+            with contextlib.suppress(ValueError):
+                pub_date = date.fromisoformat(date_str)
+
+        return Publication(
+            work_id=eid,
+            doi=entry.get("prism:doi"),
+            title=entry.get("dc:title"),
+            publication_date=pub_date,
+            journal=entry.get("prism:publicationName"),
+            citation_count=int(entry.get("citedby-count", 0)),
+            source_api="scopus",
+            raw_data=entry,
+        )
+
+    def fetch_citations(self, publications: list[Publication], author: AuthorProfile) -> list[Citation]:
+        """Fetch citation relationships from Scopus. Simplified for MVP."""
+        citations = []
+        for pub in publications:
+            for ref_id in pub.references_list:
+                citations.append(
+                    Citation(
+                        source_work_id=pub.work_id,
+                        target_work_id=ref_id,
+                        citation_date=pub.publication_date,
+                        is_self_citation=False,
+                        source_api="scopus",
+                    )
+                )
+        return citations
