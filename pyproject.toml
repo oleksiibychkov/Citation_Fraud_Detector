@@ -1,6 +1,6 @@
 [project]
 name = "citation-fraud-detector"
-version = "0.3.0"
+version = "0.4.0"
 description = "Multi-level system for detecting anomalous citation patterns in scientometric databases"
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -21,7 +21,11 @@ dependencies = [
 [project.optional-dependencies]
 neo4j = ["neo4j>=5.15"]
 igraph = ["igraph>=0.11"]
-all = ["citation-fraud-detector[neo4j,igraph]"]
+viz = ["plotly>=5.18", "kaleido>=0.2"]
+pdf = ["reportlab>=4.0"]
+html = ["jinja2>=3.1"]
+dashboard = ["streamlit>=1.30", "plotly>=5.18"]
+all = ["citation-fraud-detector[neo4j,igraph,viz,pdf,html,dashboard]"]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",

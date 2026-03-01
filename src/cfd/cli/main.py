@@ -234,3 +234,30 @@ def batch(ctx, batch_file, source, output_dir):
             continue
 
     console.print(t("info.batch_complete", output_dir=str(output_path)))
+
+
+# Register additional command groups
+from cfd.cli.compare_commands import compare  # noqa: E402
+from cfd.cli.report_commands import report  # noqa: E402
+from cfd.cli.visualize_commands import visualize  # noqa: E402
+from cfd.cli.watchlist_commands import watchlist  # noqa: E402
+
+cli.add_command(watchlist)
+cli.add_command(report)
+cli.add_command(visualize)
+cli.add_command(compare)
+
+
+@cli.command()
+def dashboard():
+    """Launch the interactive Streamlit dashboard."""
+    import subprocess
+
+    app_path = Path(__file__).parent.parent / "dashboard" / "app.py"
+    console.print(f"[green]Launching dashboard from {app_path}...[/green]")
+    try:
+        subprocess.run(["streamlit", "run", str(app_path)], check=True)
+    except FileNotFoundError:
+        console.print(
+            "[red]Streamlit not found. Install with: pip install citation-fraud-detector[dashboard][/red]"
+        )

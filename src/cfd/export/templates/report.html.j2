@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CFD Report — {{ author.full_name or author.surname }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f6fa; color: #2c3e50; line-height: 1.6; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background: #2c3e50; color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .header .meta { font-size: 13px; opacity: 0.8; }
+        .section { background: white; padding: 25px; margin-bottom: 2px; }
+        .section:last-child { border-radius: 0 0 8px 8px; margin-bottom: 20px; }
+        .section h2 { font-size: 18px; color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; }
+        .score-badge { display: inline-block; padding: 8px 20px; border-radius: 20px; color: white; font-weight: bold; font-size: 20px; }
+        .score-badge.normal { background: #2ecc71; }
+        .score-badge.low { background: #f1c40f; color: #2c3e50; }
+        .score-badge.moderate { background: #e67e22; }
+        .score-badge.high { background: #e74c3c; }
+        .score-badge.critical { background: #c0392b; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .info-item { padding: 8px 0; }
+        .info-label { font-weight: bold; color: #7f8c8d; font-size: 13px; }
+        .info-value { font-size: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #ecf0f1; text-align: left; padding: 10px; font-size: 13px; }
+        td { padding: 10px; border-bottom: 1px solid #ecf0f1; font-size: 14px; }
+        tr:hover { background: #f8f9fa; }
+        .triggered { color: #e74c3c; font-weight: bold; }
+        .ok { color: #2ecc71; }
+        .na { color: #95a5a6; }
+        .viz-container { margin: 15px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #f1c40f; padding: 12px; margin: 8px 0; border-radius: 4px; }
+        .disclaimer { background: #f8f9fa; padding: 15px; border-radius: 4px; font-size: 13px; color: #7f8c8d; font-style: italic; }
+        .theorem-passed { color: #2ecc71; }
+        .theorem-failed { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>{{ report_title }}</h1>
+            <div class="meta">{{ algorithm_version }} | {{ generated_at }}</div>
+        </div>
+
+        <!-- Section 1: Author Info -->
+        <div class="section">
+            <h2>{{ t_author_info }}</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">{{ t_name }}</div>
+                    <div class="info-value">{{ author.full_name or author.surname }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Scopus ID</div>
+                    <div class="info-value">{{ author.scopus_id or '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">ORCID</div>
+                    <div class="info-value">{{ author.orcid or '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">{{ t_institution }}</div>
+                    <div class="info-value">{{ author.institution or '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">{{ t_discipline }}</div>
+                    <div class="info-value">{{ author.discipline or '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">h-index</div>
+                    <div class="info-value">{{ author.h_index or '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">{{ t_publications }}</div>
+                    <div class="info-value">{{ author.publication_count or '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">{{ t_citations }}</div>
+                    <div class="info-value">{{ author.citation_count or '—' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Fraud Score -->
+        <div class="section">
+            <h2>{{ t_fraud_score }}</h2>
+            <p>
+                <span class="score-badge {{ confidence_level }}">{{ fraud_score }}</span>
+                &nbsp; {{ t_level }}: <strong>{{ confidence_level | upper }}</strong>
+            </p>
+        </div>
+
+        <!-- Section 3: Indicators -->
+        <div class="section">
+            <h2>{{ t_indicators }}</h2>
+            <table>
+                <thead>
+                    <tr><th>{{ t_type }}</th><th>{{ t_value }}</th><th>{{ t_status }}</th></tr>
+                </thead>
+                <tbody>
+                    {% for ind in indicators %}
+                    <tr>
+                        <td>{{ ind.type }}</td>
+                        <td>{{ ind.value }}</td>
+                        <td>
+                            {% if ind.triggered %}
+                            <span class="triggered">TRIGGERED</span>
+                            {% elif ind.value == 0 and ind.na %}
+                            <span class="na">N/A</span>
+                            {% else %}
+                            <span class="ok">OK</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Section 4: Theorem Results -->
+        {% if theorem_results %}
+        <div class="section">
+            <h2>{{ t_theorems }}</h2>
+            <table>
+                <thead>
+                    <tr><th>Theorem</th><th>Result</th><th>Details</th></tr>
+                </thead>
+                <tbody>
+                    {% for tr in theorem_results %}
+                    <tr>
+                        <td>T{{ tr.theorem_number }}</td>
+                        <td>
+                            {% if tr.passed %}
+                            <span class="theorem-passed">PASSED</span>
+                            {% else %}
+                            <span class="theorem-failed">FAILED</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tr.details }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Section 5: Visualizations -->
+        {% if figures %}
+        <div class="section">
+            <h2>{{ t_visualizations }}</h2>
+            {% for name, fig_html in figures.items() %}
+            <div class="viz-container">
+                {{ fig_html | safe }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Section 6: Warnings -->
+        {% if warnings %}
+        <div class="section">
+            <h2>{{ t_warnings }}</h2>
+            {% for w in warnings %}
+            <div class="warning">{{ w }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Section 7: Disclaimer -->
+        <div class="section">
+            <div class="disclaimer">{{ t_disclaimer }}</div>
+        </div>
+    </div>
+</body>
+</html>

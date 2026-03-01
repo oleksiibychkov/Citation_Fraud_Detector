@@ -76,4 +76,4 @@ class Settings(BaseSettings):
     default_language: str = "ua"
 
     # Algorithm version
-    algorithm_version: str = "3.0.0"
+    algorithm_version: str = "4.0.0"

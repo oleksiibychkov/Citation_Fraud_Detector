@@ -42,5 +42,30 @@
         "moderate": "Moderate",
         "high": "High",
         "critical": "Critical"
+    },
+    "viz": {
+        "network_title": "Citation Network",
+        "timeline_title": "Timeline h(t) / N(t)",
+        "heatmap_title": "Mutual Citation Heatmap",
+        "spike_title": "Citation Spikes by Year",
+        "baseline_title": "Comparison with Discipline Baseline"
+    },
+    "watchlist": {
+        "added": "Author added to watchlist (ID: {id})",
+        "removed": "Author removed from watchlist",
+        "empty": "Watchlist is empty",
+        "not_found": "Author not found in database"
+    },
+    "compare": {
+        "no_snapshots": "No snapshots found for this author",
+        "single_snapshot": "Only one snapshot available — no comparison possible",
+        "version_changed": "Algorithm version changed"
+    },
+    "dashboard": {
+        "title": "Citation Fraud Detector",
+        "overview": "Overview",
+        "dossier": "Author Dossier",
+        "compare": "Snapshot Compare",
+        "antiranking": "Anti-Ranking"
     }
 }
