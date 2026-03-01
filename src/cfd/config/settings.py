@@ -50,6 +50,17 @@ class Settings(BaseSettings):
     # G_mutual threshold
     mutual_mcr_threshold: float = 0.3
 
+    # Citation Velocity (Stage 3)
+    cv_threshold: float = 5.0
+    cv_window_months: int = 24
+
+    # Sleeping Beauty Detector (Stage 3)
+    sbd_beauty_threshold: float = 100.0
+    sbd_suspicious_threshold: float = 0.3
+
+    # Contextual analysis (Stage 3)
+    ctx_independent_threshold: int = 3
+
     # Scalability
     igraph_node_threshold: int = 50_000
 
@@ -65,4 +76,4 @@ class Settings(BaseSettings):
     default_language: str = "ua"
 
     # Algorithm version
-    algorithm_version: str = "2.0.0"
+    algorithm_version: str = "3.0.0"

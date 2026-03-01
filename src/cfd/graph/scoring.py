@@ -5,20 +5,23 @@ from __future__ import annotations
 from cfd.config.settings import Settings
 from cfd.graph.metrics import IndicatorResult
 
-# Full weights for 12 indicators (backward-compatible: score = weighted avg of available)
+# Full weights for 15 indicators (backward-compatible: score = weighted avg of available)
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "SCR": 0.12,
-    "MCR": 0.15,
-    "CB": 0.10,
-    "TA": 0.12,
+    "SCR": 0.10,
+    "MCR": 0.12,
+    "CB": 0.08,
+    "TA": 0.10,
     "HTA": 0.08,
-    "RLA": 0.08,
-    "GIC": 0.08,
-    "EIGEN": 0.05,
-    "BETWEENNESS": 0.05,
-    "PAGERANK": 0.07,
-    "COMMUNITY": 0.05,
-    "CLIQUE": 0.05,
+    "RLA": 0.06,
+    "GIC": 0.06,
+    "EIGEN": 0.04,
+    "BETWEENNESS": 0.04,
+    "PAGERANK": 0.06,
+    "COMMUNITY": 0.04,
+    "CLIQUE": 0.04,
+    "CV": 0.08,
+    "SBD": 0.05,
+    "CTX": 0.05,
 }
 
 CONFIDENCE_LEVELS: list[tuple[float, float, str]] = [
@@ -96,7 +99,7 @@ def _normalize_indicator(indicator: IndicatorResult, settings: Settings) -> floa
             return 1.0
         return value / (settings.pagerank_threshold * 2)
 
-    # TA, HTA, COMMUNITY, CLIQUE are already normalized to [0, 1]
+    # TA, HTA, COMMUNITY, CLIQUE, CV, SBD, CTX are already normalized to [0, 1]
     return min(max(value, 0.0), 1.0)
 
 
@@ -132,6 +135,12 @@ def _is_triggered(indicator: IndicatorResult, settings: Settings) -> bool:
         return value > 0.5
     if itype == "CLIQUE":
         return value > 0.5
+    if itype == "CV":
+        return value > 0.4
+    if itype == "SBD":
+        return value > settings.sbd_suspicious_threshold
+    if itype == "CTX":
+        return value > 0.4
 
     return False
 

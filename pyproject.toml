@@ -1,6 +1,6 @@
 [project]
 name = "citation-fraud-detector"
-version = "0.2.0"
+version = "0.3.0"
 description = "Multi-level system for detecting anomalous citation patterns in scientometric databases"
 requires-python = ">=3.11"
 license = {text = "MIT"}

@@ -54,6 +54,18 @@ class TestNormalizeIndicator:
         ind = IndicatorResult("HTA", 1.5, {})
         assert _normalize_indicator(ind, settings) == 1.0
 
+    def test_cv_passthrough(self, settings):
+        ind = IndicatorResult("CV", 0.6, {})
+        assert _normalize_indicator(ind, settings) == 0.6
+
+    def test_sbd_passthrough(self, settings):
+        ind = IndicatorResult("SBD", 0.4, {})
+        assert _normalize_indicator(ind, settings) == 0.4
+
+    def test_ctx_passthrough(self, settings):
+        ind = IndicatorResult("CTX", 0.5, {})
+        assert _normalize_indicator(ind, settings) == 0.5
+
 
 class TestIsTriggered:
     def test_scr_triggered(self, settings):
@@ -79,6 +91,22 @@ class TestIsTriggered:
     def test_ta_not_triggered(self, settings):
         ind = IndicatorResult("TA", 0.1, {"max_z_score": 1.0})
         assert _is_triggered(ind, settings) is False
+
+    def test_cv_triggered(self, settings):
+        ind = IndicatorResult("CV", 0.5, {})
+        assert _is_triggered(ind, settings) is True
+
+    def test_cv_not_triggered(self, settings):
+        ind = IndicatorResult("CV", 0.2, {})
+        assert _is_triggered(ind, settings) is False
+
+    def test_sbd_triggered(self, settings):
+        ind = IndicatorResult("SBD", settings.sbd_suspicious_threshold + 0.01, {})
+        assert _is_triggered(ind, settings) is True
+
+    def test_ctx_triggered(self, settings):
+        ind = IndicatorResult("CTX", 0.5, {})
+        assert _is_triggered(ind, settings) is True
 
     def test_unknown_type(self, settings):
         ind = IndicatorResult("UNKNOWN", 0.5, {})

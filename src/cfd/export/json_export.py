@@ -69,6 +69,10 @@ def export_to_json(result: AnalysisResult, output_path: Path, settings: Settings
             "pagerank_threshold": s.pagerank_threshold,
             "community_density_ratio_threshold": s.community_density_ratio_threshold,
             "cantelli_z_threshold": s.cantelli_z_threshold,
+            "cv_threshold": s.cv_threshold,
+            "sbd_beauty_threshold": s.sbd_beauty_threshold,
+            "sbd_suspicious_threshold": s.sbd_suspicious_threshold,
+            "ctx_independent_threshold": s.ctx_independent_threshold,
         },
     }
 

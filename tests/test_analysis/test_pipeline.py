@@ -40,7 +40,7 @@ class TestAnalysisPipeline:
         assert result.fraud_score >= 0.0
         assert result.fraud_score <= 1.0
         assert result.confidence_level in ("normal", "low", "moderate", "high", "critical")
-        assert len(result.indicators) >= 7  # SCR, MCR, CB, TA, HTA, RLA, GIC (+centrality if graph)
+        assert len(result.indicators) >= 9  # SCR, MCR, CB, TA, HTA, RLA, GIC, CV, SBD (+CTX, centrality if graph)
 
     def test_insufficient_data(self, settings):
         """Author with too few publications/citations should get insufficient_data status."""
@@ -107,3 +107,6 @@ class TestAnalysisPipeline:
         assert "CB" in indicator_types
         assert "TA" in indicator_types
         assert "HTA" in indicator_types
+        assert "CV" in indicator_types
+        assert "SBD" in indicator_types
+        assert "CTX" in indicator_types

@@ -30,6 +30,10 @@
         "theorem_results": "Theorem Results",
         "communities": "Communities",
         "cliques": "Cliques",
+        "citation_velocity": "Citation Velocity",
+        "sleeping_beauty": "Sleeping Beauty Detector",
+        "contextual_analysis": "Contextual Analysis",
+        "discipline_baseline": "Discipline Baseline",
         "disclaimer": "This is a suspicion score, not a verdict. Final decision rests with a human."
     },
     "levels": {

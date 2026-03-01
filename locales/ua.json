@@ -30,6 +30,10 @@
         "theorem_results": "Результати теорем",
         "communities": "Спільноти",
         "cliques": "Кліки",
+        "citation_velocity": "Швидкість цитувань",
+        "sleeping_beauty": "Детектор спячої красуні",
+        "contextual_analysis": "Контекстуальний аналіз",
+        "discipline_baseline": "Дисциплінарний базовий рівень",
         "disclaimer": "Це оцінка підозрілості, а не вирок. Остаточне рішення приймає людина."
     },
     "levels": {

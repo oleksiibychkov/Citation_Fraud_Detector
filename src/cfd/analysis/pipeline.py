@@ -5,7 +5,10 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
+from cfd.analysis.baselines import get_baseline
+from cfd.analysis.context import contextual_check
 from cfd.analysis.eligibility import check_eligibility
+from cfd.analysis.temporal import compute_cv, compute_sbd
 from cfd.config.settings import Settings
 from cfd.data.models import AuthorProfile
 from cfd.data.strategy import DataSourceStrategy
@@ -174,6 +177,25 @@ class AnalysisPipeline:
                 )
             except Exception:
                 logger.warning("Theorem hierarchy failed", exc_info=True)
+
+        # Step 5g: Citation Velocity + Sleeping Beauty
+        try:
+            baseline = get_baseline(author_data.profile.discipline)
+            indicators.append(compute_cv(author_data, baseline))
+            indicators.append(compute_sbd(author_data))
+        except Exception:
+            logger.warning("Temporal indicators (CV/SBD) failed", exc_info=True)
+
+        # Step 5h: Contextual Anomaly Analysis (must run after all other indicators)
+        try:
+            indicator_map = {ind.indicator_type: ind for ind in indicators}
+            ctx_result = contextual_check(
+                author_data, indicator_map,
+                independent_threshold=self._settings.ctx_independent_threshold,
+            )
+            indicators.append(ctx_result)
+        except Exception:
+            logger.warning("Contextual analysis (CTX) failed", exc_info=True)
 
         # Step 6: Compute fraud score
         score, confidence, triggered = compute_fraud_score(indicators, self._settings)

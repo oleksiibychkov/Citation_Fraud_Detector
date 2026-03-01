@@ -150,11 +150,11 @@ def compute_cb(author_data: AuthorData) -> IndicatorResult:
     )
 
 
-def compute_ta(author_data: AuthorData) -> IndicatorResult:
+def compute_ta(author_data: AuthorData, z_threshold: float = 3.0) -> IndicatorResult:
     """Temporal Anomaly: detect citation spikes using Z-score analysis.
 
-    Aggregates citations by year and checks for spikes > z_threshold sigma
-    from the rolling mean.
+    Enhanced (Stage 3): monthly granularity when available, cross-check
+    with publication count to distinguish legitimate growth from anomalies.
     """
     # Collect all citation dates
     citation_dates: list[date] = []
@@ -164,7 +164,6 @@ def compute_ta(author_data: AuthorData) -> IndicatorResult:
 
     # Also check counts_by_year from raw publication data
     if not citation_dates:
-        # Try to use counts_by_year from publications
         yearly_counts = _extract_counts_by_year(author_data)
         if not yearly_counts:
             return IndicatorResult("TA", 0.0, {"status": "N/A", "reason": "no_timestamps"})
@@ -174,11 +173,11 @@ def compute_ta(author_data: AuthorData) -> IndicatorResult:
     if len(yearly_counts) < 3:
         return IndicatorResult("TA", 0.0, {"status": "N/A", "reason": "insufficient_temporal_data"})
 
-    # Compute Z-scores for each year
+    # Compute yearly Z-scores
     years = sorted(yearly_counts.keys())
     values = np.array([yearly_counts[y] for y in years], dtype=float)
-    mean = np.mean(values)
-    std = np.std(values)
+    mean = float(np.mean(values))
+    std = float(np.std(values))
 
     if std == 0:
         return IndicatorResult("TA", 0.0, {"status": "no_variance", "years": dict(yearly_counts)})
@@ -187,20 +186,61 @@ def compute_ta(author_data: AuthorData) -> IndicatorResult:
     max_z_year = max(z_scores, key=z_scores.get)  # type: ignore[arg-type]
     max_z = z_scores[max_z_year]
 
-    # Normalize to [0, 1]: z=3 -> 0.5, z=6 -> 1.0
-    normalized = min(max(max_z / 6.0, 0.0), 1.0)
+    # Monthly granularity (when citation dates are available)
+    monthly_spike = None
+    if citation_dates:
+        monthly_counts = Counter((d.year, d.month) for d in citation_dates)
+        if len(monthly_counts) >= 6:
+            m_values = np.array(list(monthly_counts.values()), dtype=float)
+            m_mean = float(np.mean(m_values))
+            m_std = float(np.std(m_values))
+            if m_std > 0:
+                m_z = {k: (v - m_mean) / m_std for k, v in monthly_counts.items()}
+                max_m_key = max(m_z, key=m_z.get)  # type: ignore[arg-type]
+                monthly_spike = {
+                    "month": f"{max_m_key[0]}-{max_m_key[1]:02d}",
+                    "z_score": round(m_z[max_m_key], 3),
+                }
 
-    return IndicatorResult(
-        "TA",
-        normalized,
-        {
-            "max_z_score": round(max_z, 3),
-            "spike_year": max_z_year,
-            "yearly_counts": {str(y): int(yearly_counts[y]) for y in years},
-            "mean": round(mean, 2),
-            "std": round(std, 2),
-        },
-    )
+    # Cross-check: publication count by year
+    pub_yearly: Counter = Counter()
+    for pub in author_data.publications:
+        if pub.publication_date:
+            pub_yearly[pub.publication_date.year] += 1
+
+    citation_pub_correlation = None
+    pub_adjusted = max_z
+    if pub_yearly and len(pub_yearly) >= 3:
+        common_years = sorted(set(years) & set(pub_yearly.keys()))
+        if len(common_years) >= 3:
+            cit_vals = np.array([yearly_counts[y] for y in common_years], dtype=float)
+            pub_vals = np.array([pub_yearly[y] for y in common_years], dtype=float)
+            if np.std(pub_vals) > 0 and np.std(cit_vals) > 0:
+                corr = float(np.corrcoef(cit_vals, pub_vals)[0, 1])
+                citation_pub_correlation = round(corr, 4)
+                # If citations spike without publication increase, boost anomaly
+                if corr < 0.3 and max_z > z_threshold:
+                    pub_adjusted = max_z * 1.3
+
+    # Normalize: z_threshold -> 0.5, z_threshold*2 -> 1.0
+    normalized = min(max(pub_adjusted / (z_threshold * 2), 0.0), 1.0)
+
+    details: dict = {
+        "max_z_score": round(max_z, 3),
+        "spike_year": max_z_year,
+        "yearly_counts": {str(y): int(yearly_counts[y]) for y in years},
+        "mean": round(mean, 2),
+        "std": round(std, 2),
+        "z_threshold": z_threshold,
+    }
+    if monthly_spike:
+        details["monthly_spike"] = monthly_spike
+    if citation_pub_correlation is not None:
+        details["citation_pub_correlation"] = citation_pub_correlation
+    if pub_adjusted != max_z:
+        details["pub_adjusted_z"] = round(pub_adjusted, 3)
+
+    return IndicatorResult("TA", normalized, details)
 
 
 def _extract_counts_by_year(author_data: AuthorData) -> Counter:
@@ -219,18 +259,17 @@ def _extract_counts_by_year(author_data: AuthorData) -> Counter:
 def compute_hta(author_data: AuthorData) -> IndicatorResult:
     """h-Index Temporal Analysis: analyze h(t) growth rate.
 
-    Uses counts_by_year to approximate h-index over time and detect
-    anomalous growth.
+    Enhanced (Stage 3): reconstructs h(t) over time, computes dh/dt vs dN/dt
+    correlation, and detects anomalous growth uncorrelated with publications.
     """
     yearly_counts = _extract_counts_by_year(author_data)
     if len(yearly_counts) < 3:
         return IndicatorResult("HTA", 0.0, {"status": "N/A", "reason": "insufficient_temporal_data"})
 
-    # Sort by year
     years = sorted(yearly_counts.keys())
     values = [yearly_counts[y] for y in years]
 
-    # Compute year-over-year growth rates
+    # Compute year-over-year citation growth rates
     growth_rates = []
     for i in range(1, len(values)):
         if values[i - 1] > 0:
@@ -245,23 +284,49 @@ def compute_hta(author_data: AuthorData) -> IndicatorResult:
     mean_growth = float(np.mean(growth_arr))
     std_growth = float(np.std(growth_arr))
 
-    # Detect anomalous growth
     max_growth = float(np.max(growth_arr))
     max_z = (max_growth - mean_growth) / std_growth if std_growth > 0 else 0.0
+
+    # Build publication count by year (N(t))
+    pub_yearly: Counter = Counter()
+    for pub in author_data.publications:
+        if pub.publication_date:
+            pub_yearly[pub.publication_date.year] += 1
+
+    # Compute h(t) vs N(t) correlation
+    h_n_correlation = None
+    if pub_yearly and len(pub_yearly) >= 3:
+        common_years = sorted(set(years) & set(pub_yearly.keys()))
+        if len(common_years) >= 3:
+            cit_vals = np.array([values[years.index(y)] for y in common_years], dtype=float)
+            pub_vals = np.array([pub_yearly[y] for y in common_years], dtype=float)
+            # Cumulative for h-proxy: approximate h(t) as cumulative citations / cumulative pubs
+            cum_cit = np.cumsum(cit_vals)
+            cum_pub = np.cumsum(pub_vals)
+            if np.std(cum_pub) > 0 and np.std(cum_cit) > 0:
+                corr = float(np.corrcoef(cum_cit, cum_pub)[0, 1])
+                h_n_correlation = round(corr, 4)
+                # Low correlation with high growth = suspicious
+                if corr < 0.5 and max_z > 3.0:
+                    max_z *= 1.2
+
+    # Average annual growth rate
+    avg_annual_growth = mean_growth
 
     # Normalize to [0, 1]
     normalized = min(max(max_z / 6.0, 0.0), 1.0)
 
-    return IndicatorResult(
-        "HTA",
-        normalized,
-        {
-            "mean_growth_rate": round(mean_growth, 3),
-            "max_growth_rate": round(max_growth, 3),
-            "max_z_score": round(max_z, 3),
-            "years_analyzed": len(years),
-        },
-    )
+    details: dict = {
+        "mean_growth_rate": round(mean_growth, 3),
+        "max_growth_rate": round(max_growth, 3),
+        "max_z_score": round(max_z, 3),
+        "years_analyzed": len(years),
+        "avg_annual_growth_rate": round(avg_annual_growth, 4),
+    }
+    if h_n_correlation is not None:
+        details["h_n_correlation"] = h_n_correlation
+
+    return IndicatorResult("HTA", normalized, details)
 
 
 def compute_degree_centrality(g: nx.DiGraph, node_id: str) -> tuple[IndicatorResult, IndicatorResult]:
