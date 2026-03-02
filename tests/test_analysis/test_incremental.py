@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from cfd.analysis.incremental import check_what_changed
+from cfd.analysis.incremental import check_what_changed, should_skip_analysis
 
 
 class TestCheckWhatChanged:
@@ -55,3 +55,51 @@ class TestCheckWhatChanged:
 
         result = check_what_changed(42, author_repo, pub_repo)
         assert result["last_updated"] == ts
+
+
+class TestShouldSkipAnalysis:
+    def test_new_author_never_skipped(self):
+        stored = {"is_new": True}
+        skip, delta = should_skip_analysis(stored, 10, 100)
+        assert skip is False
+        assert delta["reason"] == "new_author"
+
+    def test_no_changes_skip(self):
+        stored = {
+            "is_new": False,
+            "stored_publication_count": 30,
+            "stored_citation_count": 200,
+        }
+        skip, delta = should_skip_analysis(stored, 30, 200)
+        assert skip is True
+        assert delta["publication_delta"] == 0
+        assert delta["citation_delta"] == 0
+
+    def test_new_publications_no_skip(self):
+        stored = {
+            "is_new": False,
+            "stored_publication_count": 30,
+            "stored_citation_count": 200,
+        }
+        skip, delta = should_skip_analysis(stored, 32, 200)
+        assert skip is False
+        assert delta["publication_delta"] == 2
+
+    def test_new_citations_no_skip(self):
+        stored = {
+            "is_new": False,
+            "stored_publication_count": 30,
+            "stored_citation_count": 200,
+        }
+        skip, delta = should_skip_analysis(stored, 30, 215)
+        assert skip is False
+        assert delta["citation_delta"] == 15
+
+    def test_none_counts_treated_as_zero(self):
+        stored = {
+            "is_new": False,
+            "stored_publication_count": 0,
+            "stored_citation_count": 0,
+        }
+        skip, delta = should_skip_analysis(stored, None, None)
+        assert skip is True

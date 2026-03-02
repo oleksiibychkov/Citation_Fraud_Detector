@@ -8,9 +8,11 @@ from dataclasses import dataclass, field
 from cfd.analysis.authorship import compute_ana
 from cfd.analysis.baselines import get_baseline
 from cfd.analysis.cannibalism import compute_cc
+from cfd.analysis.coercive import detect_coercive_citations
 from cfd.analysis.context import contextual_check
 from cfd.analysis.cross_platform import compute_cpc
 from cfd.analysis.eligibility import check_eligibility
+from cfd.analysis.journal import compute_jscr
 from cfd.analysis.peer_benchmark import compute_pb
 from cfd.analysis.salami import compute_ssd
 from cfd.analysis.temporal import compute_cv, compute_sbd
@@ -92,6 +94,7 @@ class AnalysisPipeline:
         *,
         scopus_id: str | None = None,
         orcid: str | None = None,
+        sensitivity_overrides: dict | None = None,
     ) -> AnalysisResult:
         """Run full analysis pipeline for a single author."""
         warnings: list[str] = []
@@ -99,6 +102,11 @@ class AnalysisPipeline:
         # Step 1: Collect data from API
         logger.info("Collecting data for %s...", surname)
         author_data = self._strategy.collect(surname, scopus_id=scopus_id, orcid=orcid)
+
+        # Step 1b: Incremental check — skip if nothing changed (§1.7)
+        skipped = self._check_incremental(author_data, warnings)
+        if skipped is not None:
+            return skipped
 
         # Step 2: Check eligibility
         eligible, reason = check_eligibility(author_data.profile, self._settings)
@@ -238,6 +246,17 @@ class AnalysisPipeline:
         except Exception:
             logger.warning("CPC computation failed", exc_info=True)
 
+        # Step 5j: Journal-level indicators (§3.7)
+        try:
+            indicators.append(compute_jscr(author_data))
+        except Exception:
+            logger.warning("JSCR computation failed", exc_info=True)
+
+        try:
+            indicators.append(detect_coercive_citations(author_data))
+        except Exception:
+            logger.warning("COERCE detection failed", exc_info=True)
+
         # Step 5h: Contextual Anomaly Analysis (must run after all other indicators)
         try:
             indicator_map = {ind.indicator_type: ind for ind in indicators}
@@ -268,6 +287,47 @@ class AnalysisPipeline:
             status="completed",
             warnings=warnings,
         )
+
+    def _check_incremental(self, author_data, warnings: list[str]) -> AnalysisResult | None:
+        """Check if re-analysis can be skipped (§1.7). Returns AnalysisResult if skipped, else None."""
+        if not self._author_repo or not self._pub_repo:
+            return None
+
+        try:
+            from cfd.analysis.incremental import check_what_changed, should_skip_analysis
+
+            # Look up existing author by scopus_id or openalex_id
+            stored_author = None
+            if author_data.profile.scopus_id:
+                stored_author = self._author_repo.get_by_scopus_id(author_data.profile.scopus_id)
+            if stored_author is None and author_data.profile.openalex_id:
+                stored_author = self._author_repo.get_by_openalex_id(author_data.profile.openalex_id)
+
+            if stored_author is None:
+                return None
+
+            author_id = stored_author.get("id")
+            if not author_id:
+                return None
+
+            stored = check_what_changed(author_id, self._author_repo, self._pub_repo)
+            skip, delta = should_skip_analysis(
+                stored,
+                author_data.profile.publication_count,
+                author_data.profile.citation_count,
+            )
+
+            if skip:
+                logger.info("Incremental check: no changes for %s — skipping", author_data.profile.surname)
+                return AnalysisResult(
+                    author_profile=author_data.profile,
+                    status="skipped_no_changes",
+                    warnings=["No new publications or citations since last analysis"],
+                )
+        except Exception:
+            logger.warning("Incremental check failed — proceeding with full analysis", exc_info=True)
+
+        return None
 
     def _select_engine(self, citation_graph) -> GraphEngine | None:
         """Select appropriate graph engine. Returns None if graph is too small."""

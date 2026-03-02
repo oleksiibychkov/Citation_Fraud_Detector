@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.9.0 — 100% TODO Compliance
+
+- **Identity cross-check** (§1.3): ORCID vs Scopus ID verification in OpenAlex and Scopus strategies; raises `IdentityMismatchError` on mismatch
+- **Incremental update** (§1.7): `should_skip_analysis()` in pipeline skips re-analysis when no new publications or citations
+- **Journal Self-Citation Rate** (§3.7): new `JSCR` indicator measuring same-journal reference concentration
+- **Coercive Citation Detection** (§3.7): new `COERCE` indicator with 3 signals (concentration, recent bias, trend increase)
+- **Notification system** (§4.4/§11): email (SMTP) and webhook (HTTP POST with HMAC) alerts on score changes ≥ threshold
+- **Per-author sensitivity overrides** (§4.4): `set_sensitivity_overrides()` in watchlist repo, CLI `set-sensitivity` command, API `PUT /watchlist/{id}/sensitivity`
+- **Watchlist reanalyze** (§4.4): `cfd watchlist reanalyze --all` command for cron-driven re-analysis with snapshot saving and notifications
+- **CRIS integration** (§6.4): Pure/Converis/VIVO endpoints with real payload parsing, author extraction, watchlist addition, and audit logging
+- **22 total indicators** (JSCR + COERCE added), algorithm version 5.0.0
+- **782 tests**, coverage ≥85%
+
 ## v0.8.0 — Integration Tests, Compliance & Coverage
 
 - **15 integration tests**: full pipeline end-to-end, fallback strategy failover, CLI integration with mocked HTTP

@@ -10,7 +10,7 @@ from cfd.data.http_client import CachedHttpClient
 from cfd.data.models import AuthorProfile, Citation, Publication
 from cfd.data.strategy import DataSourceStrategy
 from cfd.data.validators import check_surname_match
-from cfd.exceptions import AuthorNotFoundError
+from cfd.exceptions import AuthorNotFoundError, IdentityMismatchError
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +43,17 @@ class OpenAlexStrategy(DataSourceStrategy):
         """Fetch author from OpenAlex by ORCID, Scopus ID, or name search."""
         author_data = None
 
-        # Try ORCID first
-        if orcid:
+        # Identity cross-check: when both ORCID and Scopus ID provided,
+        # fetch by both and verify they resolve to the same person (§1.3)
+        if orcid and scopus_id:
+            data_by_orcid = self._fetch_by_orcid(orcid)
+            data_by_scopus = self._fetch_by_scopus_id(scopus_id)
+            if data_by_orcid and data_by_scopus:
+                self._verify_identity_match(data_by_orcid, data_by_scopus, orcid, scopus_id)
+            author_data = data_by_orcid or data_by_scopus
+        elif orcid:
             author_data = self._fetch_by_orcid(orcid)
-
-        # Try Scopus ID via external IDs
-        if author_data is None and scopus_id:
+        elif scopus_id:
             author_data = self._fetch_by_scopus_id(scopus_id)
 
         # Fallback: name search
@@ -66,6 +71,19 @@ class OpenAlexStrategy(DataSourceStrategy):
             logger.warning(warning)
 
         return profile
+
+    @staticmethod
+    def _verify_identity_match(
+        data_a: dict, data_b: dict, orcid: str, scopus_id: str,
+    ) -> None:
+        """Verify that ORCID and Scopus ID resolve to the same OpenAlex author."""
+        id_a = data_a.get("id", "")
+        id_b = data_b.get("id", "")
+        if id_a and id_b and id_a != id_b:
+            raise IdentityMismatchError(
+                f"ORCID {orcid} resolves to {id_a} but Scopus ID {scopus_id} "
+                f"resolves to {id_b} — these appear to be different authors"
+            )
 
     def _fetch_by_orcid(self, orcid: str) -> dict | None:
         params = self._params({"filter": f"orcid:{orcid}"})

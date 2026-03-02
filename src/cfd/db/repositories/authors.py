@@ -53,6 +53,10 @@ class AuthorRepository:
         result = self._client.table(self._table).select("*").eq("orcid", orcid).execute()
         return result.data[0] if result.data else None
 
+    def get_by_openalex_id(self, openalex_id: str) -> dict | None:
+        result = self._client.table(self._table).select("*").eq("openalex_id", openalex_id).execute()
+        return result.data[0] if result.data else None
+
     def get_by_id(self, author_id: int) -> dict | None:
         result = self._client.table(self._table).select("*").eq("id", author_id).execute()
         return result.data[0] if result.data else None

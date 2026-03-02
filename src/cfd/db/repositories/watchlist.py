@@ -36,3 +36,26 @@ class WatchlistRepository:
             .execute()
         )
         return result.data or []
+
+    def set_sensitivity_overrides(self, author_id: int, overrides: dict) -> dict:
+        """Set per-author sensitivity overrides (§4.4)."""
+        result = (
+            self._client.table(self._table)
+            .update({"sensitivity_overrides": overrides})
+            .eq("author_id", author_id)
+            .execute()
+        )
+        data = result.data or []
+        return data[0] if data else {}
+
+    def get_with_author_info(self, limit: int = 100) -> list[dict]:
+        """Get active watchlist entries joined with author info."""
+        result = (
+            self._client.table(self._table)
+            .select("*, authors(id, surname, full_name, scopus_id, orcid)")
+            .eq("is_active", True)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return result.data or []

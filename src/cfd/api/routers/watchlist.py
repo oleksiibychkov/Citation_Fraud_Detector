@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from cfd.api.auth import APIKeyInfo, require_role
 from cfd.api.dependencies import get_repos
-from cfd.api.schemas import WatchlistAddRequest, WatchlistEntry, WatchlistHistoryEntry
+from cfd.api.schemas import SensitivityOverridesRequest, WatchlistAddRequest, WatchlistEntry, WatchlistHistoryEntry
 from cfd.exceptions import AuthorNotFoundError
 
 router = APIRouter(prefix="/watchlist", tags=["Watchlist"])
@@ -76,3 +76,20 @@ async def get_watchlist_history(
         )
         for s in snapshots
     ]
+
+
+@router.put("/{author_id}/sensitivity")
+async def set_sensitivity_overrides(
+    author_id: int,
+    body: SensitivityOverridesRequest,
+    key_info: APIKeyInfo = Depends(require_role("analyst", "admin")),
+    repos: dict = Depends(get_repos),
+):
+    """Set per-author sensitivity overrides (§4.4)."""
+    repos["watchlist"].set_sensitivity_overrides(author_id, body.overrides)
+    repos["audit"].log(
+        "set_sensitivity", target_author_id=author_id,
+        details={"overrides": body.overrides, "api_key": key_info.name},
+        user_id=key_info.name, api_key_id=key_info.key_id,
+    )
+    return {"status": "ok", "author_id": author_id, "overrides": body.overrides}

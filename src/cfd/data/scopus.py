@@ -10,7 +10,7 @@ from cfd.data.http_client import CachedHttpClient
 from cfd.data.models import AuthorProfile, Citation, Publication
 from cfd.data.strategy import DataSourceStrategy
 from cfd.data.validators import check_surname_match
-from cfd.exceptions import AuthorNotFoundError, ValidationError
+from cfd.exceptions import AuthorNotFoundError, IdentityMismatchError, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,15 @@ class ScopusStrategy(DataSourceStrategy):
         """Fetch author profile from Scopus."""
         author_data = None
 
-        if scopus_id:
+        # Identity cross-check: when both IDs provided, fetch by both
+        # and verify they resolve to the same person (§1.3)
+        if scopus_id and orcid:
+            data_by_scopus = self._fetch_by_scopus_id(scopus_id)
+            data_by_orcid = self._fetch_by_orcid(orcid)
+            if data_by_scopus and data_by_orcid:
+                self._verify_identity_match(data_by_scopus, data_by_orcid, scopus_id, orcid)
+            author_data = data_by_scopus or data_by_orcid
+        elif scopus_id:
             author_data = self._fetch_by_scopus_id(scopus_id)
         elif orcid:
             author_data = self._fetch_by_orcid(orcid)
@@ -59,6 +67,19 @@ class ScopusStrategy(DataSourceStrategy):
             logger.warning(warning)
 
         return profile
+
+    @staticmethod
+    def _verify_identity_match(
+        data_by_scopus: dict, data_by_orcid: dict, scopus_id: str, orcid: str,
+    ) -> None:
+        """Verify that Scopus ID and ORCID resolve to the same Scopus author."""
+        id_a = data_by_scopus.get("coredata", {}).get("dc:identifier", "").replace("AUTHOR_ID:", "")
+        id_b = data_by_orcid.get("coredata", {}).get("dc:identifier", "").replace("AUTHOR_ID:", "")
+        if id_a and id_b and id_a != id_b:
+            raise IdentityMismatchError(
+                f"Scopus ID {scopus_id} resolves to author {id_a} but ORCID {orcid} "
+                f"resolves to author {id_b} — these appear to be different authors"
+            )
 
     def _fetch_by_scopus_id(self, scopus_id: str) -> dict | None:
         url = f"{SCOPUS_BASE}/author/author_id/{scopus_id}"

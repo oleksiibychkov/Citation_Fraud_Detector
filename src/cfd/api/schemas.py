@@ -102,6 +102,10 @@ class BatchResponse(BaseModel):
     disclaimer: str = "This is a suspicion score, not a verdict. Final decision rests with a human."
 
 
+class SensitivityOverridesRequest(BaseModel):
+    overrides: dict = Field(default_factory=dict)
+
+
 class WatchlistAddRequest(BaseModel):
     author_id: int
     reason: str | None = None

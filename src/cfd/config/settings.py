@@ -99,5 +99,16 @@ class Settings(BaseSettings):
     # Localization
     default_language: str = "ua"
 
+    # Notifications (§4.4/§11)
+    notification_email_enabled: bool = False
+    notification_email_to: str = ""
+    notification_smtp_host: str = "localhost"
+    notification_smtp_port: int = 587
+    notification_smtp_user: str = ""
+    notification_smtp_password: str = ""
+    notification_webhook_url: str = ""
+    notification_webhook_secret: str = ""
+    notification_score_threshold: float = 0.1
+
     # Algorithm version
     algorithm_version: str = "5.0.0"
