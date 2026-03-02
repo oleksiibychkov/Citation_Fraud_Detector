@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.8.0 — Integration Tests, Compliance & Coverage
+
+- **15 integration tests**: full pipeline end-to-end, fallback strategy failover, CLI integration with mocked HTTP
+- **15 new unit tests**: FallbackStrategy (6), incremental analysis (4), API dependencies (5)
+- **Ethical disclaimer compliance** (§13.4): disclaimer added to API `ScoreResponse`, `IndicatorsResponse`, `BatchResponse`; CSV exports; all 4 dashboard pages (UA/EN)
+- **Dashboard disclaimer i18n**: bilingual `render_disclaimer()` shared module
+- **720 tests**, coverage ≥85%
+
 ## v0.7.0 — Hardening, Coverage & Documentation
 
 - **Test coverage raised to ≥80%** (from 67%), 668+ tests

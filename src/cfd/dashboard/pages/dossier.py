@@ -128,3 +128,7 @@ def _render_visualizations(author_data, result):
         st.warning("Plotly is required for visualizations. Install with: pip install citation-fraud-detector[viz]")
     except Exception as e:
         st.warning(f"Could not render visualizations: {e}")
+
+    from cfd.dashboard.disclaimer import render_disclaimer
+
+    render_disclaimer()

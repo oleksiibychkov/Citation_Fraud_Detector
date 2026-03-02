@@ -96,3 +96,7 @@ def _export_csv(entries: list[dict]):
         ])
 
     st.download_button("Download CSV", buf.getvalue(), "antiranking.csv", "text/csv")
+
+    from cfd.dashboard.disclaimer import render_disclaimer
+
+    render_disclaimer()

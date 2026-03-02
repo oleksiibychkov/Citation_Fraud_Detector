@@ -56,6 +56,10 @@ def render():
         with col_reason:
             st.write(entry.get("reason", "—"))
 
+    from cfd.dashboard.disclaimer import render_disclaimer
+
+    render_disclaimer()
+
 
 def _load_watchlist() -> list[dict]:
     """Load watchlist entries from database."""

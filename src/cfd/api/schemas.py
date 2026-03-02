@@ -48,12 +48,14 @@ class ScoreResponse(BaseModel):
     confidence_level: str
     triggered_indicators: list[str] = Field(default_factory=list)
     algorithm_version: str
+    disclaimer: str = "This is a suspicion score, not a verdict. Final decision rests with a human."
 
 
 class IndicatorsResponse(BaseModel):
     author: AuthorSummary
     indicators: list[IndicatorDetail] = Field(default_factory=list)
     algorithm_version: str
+    disclaimer: str = "This is a suspicion score, not a verdict. Final decision rests with a human."
 
 
 class ReportResponse(BaseModel):
@@ -97,6 +99,7 @@ class BatchResponse(BaseModel):
     processed: int = 0
     results: list[BatchResultItem] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
+    disclaimer: str = "This is a suspicion score, not a verdict. Final decision rests with a human."
 
 
 class WatchlistAddRequest(BaseModel):

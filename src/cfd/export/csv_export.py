@@ -38,6 +38,10 @@ def export_to_csv(result: AnalysisResult, output_path: Path, settings: Settings 
                 details_str[:200],
             ])
 
+        writer.writerow([])
+        _disclaimer = "This is a suspicion score, not a verdict. Final decision rests with a human."
+        writer.writerow(["# Disclaimer", _disclaimer])
+
 
 def export_ranking_csv(results: list[AnalysisResult], output_path: Path, settings: Settings | None = None) -> None:
     """Export anti-ranking: authors sorted by Fraud Score (highest first)."""
@@ -64,3 +68,7 @@ def export_ranking_csv(results: list[AnalysisResult], output_path: Path, setting
                 len(r.triggered_indicators),
                 s.algorithm_version,
             ])
+
+        writer.writerow([])
+        _disclaimer = "This is a suspicion score, not a verdict. Final decision rests with a human."
+        writer.writerow(["# Disclaimer", _disclaimer])

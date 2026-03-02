@@ -105,3 +105,7 @@ def _render_timeline(snapshots: list[dict]):
         st.plotly_chart(fig, use_container_width=True)
     except ImportError:
         st.warning("Plotly required for timeline chart.")
+
+    from cfd.dashboard.disclaimer import render_disclaimer
+
+    render_disclaimer()
