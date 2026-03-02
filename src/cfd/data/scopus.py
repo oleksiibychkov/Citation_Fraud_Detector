@@ -17,6 +17,16 @@ logger = logging.getLogger(__name__)
 SCOPUS_BASE = "https://api.elsevier.com/content"
 
 
+def _safe_int(val) -> int | None:
+    """Safely convert a value to int, returning None on failure."""
+    if val is None or val == "":
+        return None
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return None
+
+
 class ScopusStrategy(DataSourceStrategy):
     """Data source strategy for Scopus API."""
 
@@ -149,9 +159,9 @@ class ScopusStrategy(DataSourceStrategy):
             full_name=full_name or None,
             institution=institution,
             discipline=discipline,
-            h_index=int(core["h-index"]) if core.get("h-index") is not None else None,
-            publication_count=int(core["document-count"]) if core.get("document-count") is not None else None,
-            citation_count=int(core["citation-count"]) if core.get("citation-count") is not None else None,
+            h_index=_safe_int(core.get("h-index")),
+            publication_count=_safe_int(core.get("document-count")),
+            citation_count=_safe_int(core.get("citation-count")),
             source_api="scopus",
             raw_data=data,
         )
@@ -187,7 +197,7 @@ class ScopusStrategy(DataSourceStrategy):
                 if pub:
                     publications.append(pub)
 
-            total = int(data.get("search-results", {}).get("opensearch:totalResults", 0))
+            total = _safe_int(data.get("search-results", {}).get("opensearch:totalResults", 0)) or 0
             start += count
             if start >= total:
                 break
@@ -213,7 +223,7 @@ class ScopusStrategy(DataSourceStrategy):
             title=entry.get("dc:title"),
             publication_date=pub_date,
             journal=entry.get("prism:publicationName"),
-            citation_count=int(entry.get("citedby-count", 0)),
+            citation_count=_safe_int(entry.get("citedby-count")) or 0,
             source_api="scopus",
             raw_data=entry,
         )

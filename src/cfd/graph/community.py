@@ -51,7 +51,9 @@ def detect_communities(
             continue
 
         internal_d, external_d = engine.community_densities(members)
-        ratio = internal_d / external_d if external_d > 0 else float("inf")
+        if external_d == 0.0:
+            continue  # sole community — no external comparison possible
+        ratio = internal_d / external_d
 
         if ratio > density_ratio_threshold:
             suspicious.append({

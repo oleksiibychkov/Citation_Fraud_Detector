@@ -56,8 +56,12 @@ class OpenAlexStrategy(DataSourceStrategy):
         elif scopus_id:
             author_data = self._fetch_by_scopus_id(scopus_id)
 
-        # Fallback: name search
+        # Fallback: name search (only when no explicit IDs were provided)
         if author_data is None:
+            if orcid or scopus_id:
+                raise AuthorNotFoundError(
+                    f"Author not found by provided identifiers (ORCID={orcid}, Scopus={scopus_id})"
+                )
             author_data = self._fetch_by_name(surname)
 
         if author_data is None:

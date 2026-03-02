@@ -99,7 +99,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(RateLimitError)
     async def _rate_limit_error(_request: Request, exc: RateLimitError):
-        return JSONResponse(status_code=429, content={"detail": str(exc)})
+        return JSONResponse(
+            status_code=429,
+            content={"detail": str(exc)},
+            headers={"Retry-After": "60"},
+        )
 
     @app.exception_handler(DatabaseUnavailableError)
     async def _db_unavailable(_request: Request, exc: DatabaseUnavailableError):

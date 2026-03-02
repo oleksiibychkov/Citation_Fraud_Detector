@@ -12,7 +12,7 @@ from cfd.exceptions import AuthorNotFoundError
 router = APIRouter(prefix="/watchlist", tags=["Watchlist"])
 
 
-@router.post("/add", response_model=WatchlistEntry)
+@router.post("/add", response_model=WatchlistEntry, status_code=201)
 def add_to_watchlist(
     body: WatchlistAddRequest,
     key_info: APIKeyInfo = Depends(require_role("analyst", "admin")),

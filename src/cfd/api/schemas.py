@@ -135,7 +135,7 @@ class SensitivityOverridesRequest(BaseModel):
 
 
 class WatchlistAddRequest(BaseModel):
-    author_id: int
+    author_id: int = Field(..., ge=1)
     reason: str | None = None
     notes: str | None = None
 

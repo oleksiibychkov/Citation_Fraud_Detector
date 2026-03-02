@@ -24,7 +24,7 @@ def test_watchlist_add_success(mock_client, mock_author_repo, mock_wl_repo):
 
     runner = CliRunner()
     result = runner.invoke(cli, ["watchlist", "add", "--scopus-id", "12345"])
-    assert "added" in result.output.lower() or result.exit_code == 0
+    assert result.exit_code == 0
 
 
 @patch("cfd.db.repositories.watchlist.WatchlistRepository")
@@ -72,4 +72,4 @@ def test_watchlist_remove(mock_client, mock_author_repo, mock_wl_repo):
 
     runner = CliRunner()
     result = runner.invoke(cli, ["watchlist", "remove", "--scopus-id", "12345"])
-    assert "removed" in result.output.lower() or result.exit_code == 0
+    assert result.exit_code == 0

@@ -52,7 +52,7 @@ async def batch_analyze(
     if len(validation.entries) > MAX_BATCH_SIZE:
         errors.append(f"Batch truncated to {MAX_BATCH_SIZE} entries (submitted {len(validation.entries)})")
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     results: list[BatchResultItem] = []
     for entry in entries:
         try:

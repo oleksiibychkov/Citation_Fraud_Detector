@@ -76,7 +76,11 @@ async def get_api_key(
     settings: Settings = getattr(request.app.state, "settings", None) or Settings()
     if settings.api_keys:
         env_keys = [k.strip() for k in settings.api_keys.split(",") if k.strip()]
-        if any(hmac.compare_digest(x_api_key, k) for k in env_keys):
+        matched = False
+        for k in env_keys:
+            if hmac.compare_digest(x_api_key, k):
+                matched = True
+        if matched:
             return APIKeyInfo(key_id=None, name="env_key", role="admin", rate_limit_per_minute=120)
 
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")

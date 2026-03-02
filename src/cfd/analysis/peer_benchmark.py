@@ -60,10 +60,10 @@ def compute_pb(
 
     # Save peer group if repo available
     try:
-        if peer_repo and hasattr(peer_repo, "save"):
+        if peer_repo and hasattr(peer_repo, "save") and author_id is not None:
             peer_ids = [p.get("id") for p in peers if p.get("id")]
             peer_repo.save(
-                author_id=author_id or peers[0].get("id", 0),
+                author_id=author_id,
                 peer_author_ids=peer_ids,
                 discipline=author_data.profile.discipline or "unknown",
                 matching_criteria={"k": k, "min_peers": min_peers},
@@ -134,7 +134,7 @@ def _compute_peer_deviation(
         median = peer_values_sorted[mid] if n % 2 == 1 else (peer_values_sorted[mid - 1] + peer_values_sorted[mid]) / 2
 
         mean = sum(peer_values) / n
-        variance = sum((v - mean) ** 2 for v in peer_values) / n
+        variance = sum((v - mean) ** 2 for v in peer_values) / (n - 1) if n > 1 else 0.0
         std = math.sqrt(variance) if variance > 0 else 0.0
 
         author_val = author_metrics.get(metric, 0)

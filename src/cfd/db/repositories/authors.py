@@ -40,6 +40,8 @@ class AuthorRepository:
             result = self._client.table(self._table).upsert(data, on_conflict="scopus_id").execute()
         elif profile.orcid:
             result = self._client.table(self._table).upsert(data, on_conflict="orcid").execute()
+        elif profile.openalex_id:
+            result = self._client.table(self._table).upsert(data, on_conflict="openalex_id").execute()
         else:
             result = self._client.table(self._table).insert(data).execute()
 

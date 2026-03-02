@@ -52,7 +52,7 @@ def _aggregate_centrality(engine, work_ids: set[str], metric: str) -> IndicatorR
         "PAGERANK": engine.pagerank,
     }
     fn = method_map[metric]
-    values = [fn(wid) for wid in work_ids if fn(wid) > 0]
+    values = [v for wid in work_ids if (v := fn(wid)) > 0]
     avg = sum(values) / len(values) if values else 0.0
     return IndicatorResult(
         metric, avg,

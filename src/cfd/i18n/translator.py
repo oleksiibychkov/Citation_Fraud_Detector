@@ -48,5 +48,8 @@ def t(key: str, lang: str | None = None, **kwargs) -> str:
         if value is None:
             return key
     if isinstance(value, str):
-        return value.format(**kwargs) if kwargs else value
+        try:
+            return value.format(**kwargs) if kwargs else value
+        except KeyError:
+            return value
     return key

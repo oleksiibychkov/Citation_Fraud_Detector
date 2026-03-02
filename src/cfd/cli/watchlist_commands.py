@@ -253,6 +253,13 @@ def set_sensitivity(ctx, author_id, overrides):
         console.print("[red]Overrides must be a JSON object (dict), not a list or scalar[/red]")
         return
 
+    from cfd.api.schemas import _ALLOWED_SENSITIVITY_KEYS
+
+    bad_keys = set(overrides_dict) - _ALLOWED_SENSITIVITY_KEYS
+    if bad_keys:
+        console.print(f"[red]Invalid sensitivity keys: {sorted(bad_keys)}[/red]")
+        return
+
     try:
         from cfd.db.client import get_supabase_client
         from cfd.db.repositories.watchlist import WatchlistRepository

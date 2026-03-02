@@ -102,7 +102,7 @@ class NetworkXEngine(GraphEngine):
         sub = self._g.subgraph(node_ids)
         if sub.is_directed():
             return not nx.is_directed_acyclic_graph(sub)
-        return len(sub.edges) >= len(sub.nodes)
+        return bool(nx.cycle_basis(sub))
 
     def modularity(self, partition: dict[Any, int]) -> float:
         communities_list: dict[int, set] = {}

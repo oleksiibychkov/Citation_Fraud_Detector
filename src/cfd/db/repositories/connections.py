@@ -50,8 +50,10 @@ class AuthorConnectionRepository:
         for c in connections:
             src = c.get("source_author_id")
             tgt = c.get("target_author_id")
-            nodes.add(src)
-            nodes.add(tgt)
+            if src is not None:
+                nodes.add(src)
+            if tgt is not None:
+                nodes.add(tgt)
             edges.append({
                 "source": src,
                 "target": tgt,

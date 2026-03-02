@@ -15,7 +15,8 @@ def test_compare_no_snapshots(mock_client, mock_snap_repo):
 
     runner = CliRunner()
     result = runner.invoke(cli, ["compare", "--author-id", "1"])
-    assert "no snapshots" in result.output.lower() or result.exit_code == 0
+    assert result.exit_code == 0
+    assert "no snapshots" in result.output.lower() or "snapshot" in result.output.lower()
 
 
 @patch("cfd.db.repositories.snapshots.SnapshotRepository")
@@ -28,7 +29,7 @@ def test_compare_single_snapshot(mock_client, mock_snap_repo):
 
     runner = CliRunner()
     result = runner.invoke(cli, ["compare", "--author-id", "1"])
-    assert "one snapshot" in result.output.lower() or result.exit_code == 0
+    assert result.exit_code == 0
 
 
 @patch("cfd.db.repositories.snapshots.SnapshotRepository")

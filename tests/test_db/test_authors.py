@@ -33,11 +33,18 @@ class TestAuthorRepository:
         result = repo.upsert(_profile(scopus_id=None))
         assert result["id"] == 2
 
-    def test_upsert_insert_fallback(self, mock_client):
+    def test_upsert_with_openalex_id_only(self, mock_client):
         set_execute_data(mock_client, [{"id": 3}])
         repo = AuthorRepository(mock_client)
         result = repo.upsert(_profile(scopus_id=None, orcid=None))
         assert result["id"] == 3
+        mock_client.table.return_value.upsert.assert_called()
+
+    def test_upsert_insert_fallback(self, mock_client):
+        set_execute_data(mock_client, [{"id": 4}])
+        repo = AuthorRepository(mock_client)
+        result = repo.upsert(_profile(scopus_id=None, orcid=None, openalex_id=None))
+        assert result["id"] == 4
         mock_client.table.return_value.insert.assert_called_once()
 
     def test_upsert_empty_result(self, mock_client):

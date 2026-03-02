@@ -9,7 +9,7 @@ class TestAddToWatchlist:
             "/api/v1/watchlist/add",
             json={"author_id": 1, "reason": "Suspicious patterns"},
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         data = resp.json()
         assert data["author_id"] == 1
         assert data["is_active"] is True

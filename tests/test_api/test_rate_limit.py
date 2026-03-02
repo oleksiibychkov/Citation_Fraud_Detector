@@ -13,9 +13,9 @@ class TestRateLimitKeyFunc:
             client = type("C", (), {"host": "127.0.0.1"})()
 
         result = _key_func(FakeRequest())
-        # Should be a hex hash prefix, not the raw key
+        # Should be a full hex hash, not the raw key
         assert result != "my-key"
-        assert len(result) == 16
+        assert len(result) == 64
         assert all(c in "0123456789abcdef" for c in result)
 
     def test_key_fallback_to_ip(self):
