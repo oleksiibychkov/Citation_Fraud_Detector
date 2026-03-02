@@ -85,8 +85,8 @@ def _load_ranking() -> list[dict]:
             author_id = row.get("author_id")
             author = author_repo.get_by_id(author_id) if author_id else None
             enriched.append({
-                "fraud_score": row.get("score", 0),
-                "confidence_level": row.get("confidence_level", "normal"),
+                "fraud_score": row.get("score") or 0,
+                "confidence_level": row.get("confidence_level") or "normal",
                 "author_name": (author or {}).get("full_name") or (author or {}).get("surname", "Unknown"),
                 "h_index": (author or {}).get("h_index"),
                 "citation_count": (author or {}).get("citation_count"),

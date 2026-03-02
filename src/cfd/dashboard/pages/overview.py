@@ -89,8 +89,8 @@ def _load_watchlist() -> list[dict]:
 
             enriched.append({
                 "author_name": (author or {}).get("full_name") or (author or {}).get("surname", "Unknown"),
-                "fraud_score": (latest_score or {}).get("score", 0),
-                "confidence_level": (latest_score or {}).get("confidence_level", "normal"),
+                "fraud_score": (latest_score or {}).get("score") or 0,
+                "confidence_level": (latest_score or {}).get("confidence_level") or "normal",
                 "reason": entry.get("reason", "—"),
                 "author_id": author_id,
             })

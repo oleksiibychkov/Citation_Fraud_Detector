@@ -90,9 +90,13 @@ def export_to_pdf(
         ["ORCID", result.author_profile.orcid or "—"],
         [translations["institution"], result.author_profile.institution or "—"],
         [translations["discipline"], result.author_profile.discipline or "—"],
-        ["h-index", str(result.author_profile.h_index or "—")],
-        [translations["publications"], str(result.author_profile.publication_count or "—")],
-        [translations["citations"], str(result.author_profile.citation_count or "—")],
+        ["h-index", str(result.author_profile.h_index) if result.author_profile.h_index is not None else "—"],
+        [translations["publications"],
+         str(result.author_profile.publication_count)
+         if result.author_profile.publication_count is not None else "—"],
+        [translations["citations"],
+         str(result.author_profile.citation_count)
+         if result.author_profile.citation_count is not None else "—"],
     ]
     author_table = Table(author_data, colWidths=[50 * mm, 100 * mm])
     author_table.setStyle(TableStyle([
@@ -200,6 +204,7 @@ def export_antiranking_pdf(
 
     doc = SimpleDocTemplate(str(output_path), pagesize=landscape(A4))
     styles = getSampleStyleSheet()
+    _apply_unicode_font(styles)
     elements = []
 
     translations = _get_pdf_translations(lang)

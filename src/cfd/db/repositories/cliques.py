@@ -14,9 +14,8 @@ class CliqueRepository:
         """Save detected cliques."""
         if not cliques:
             return []
-        for row in cliques:
-            row.setdefault("algorithm_version", algorithm_version)
-        result = self._client.table(self._table).insert(cliques).execute()
+        rows = [{**row, "algorithm_version": row.get("algorithm_version", algorithm_version)} for row in cliques]
+        result = self._client.table(self._table).insert(rows).execute()
         return result.data or []
 
     def get_by_severity(self, severity: str | None = None, limit: int = 100) -> list[dict]:

@@ -53,6 +53,39 @@ class TestListWatchlist:
         assert len(resp.json()) == 2
 
 
+class TestSetSensitivity:
+    def test_set_sensitivity_success(self, client_analyst, mock_repos):
+        mock_repos["watchlist"].set_sensitivity_overrides.return_value = {"author_id": 1}
+        resp = client_analyst.put(
+            "/api/v1/watchlist/1/sensitivity",
+            json={"overrides": {"mcr_threshold": 0.5}},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+
+    def test_set_sensitivity_no_entry(self, client_analyst, mock_repos):
+        mock_repos["watchlist"].set_sensitivity_overrides.return_value = {}
+        resp = client_analyst.put(
+            "/api/v1/watchlist/999/sensitivity",
+            json={"overrides": {"mcr_threshold": 0.5}},
+        )
+        assert resp.status_code == 404
+
+    def test_set_sensitivity_invalid_key_rejected(self, client_analyst, mock_repos):
+        resp = client_analyst.put(
+            "/api/v1/watchlist/1/sensitivity",
+            json={"overrides": {"supabase_key": "evil", "mcr_threshold": 0.5}},
+        )
+        assert resp.status_code == 422
+
+    def test_set_sensitivity_reader_forbidden(self, client_reader, mock_repos):
+        resp = client_reader.put(
+            "/api/v1/watchlist/1/sensitivity",
+            json={"overrides": {"mcr_threshold": 0.5}},
+        )
+        assert resp.status_code == 403
+
+
 class TestWatchlistHistory:
     def test_history_empty(self, client_reader, mock_repos):
         resp = client_reader.get("/api/v1/watchlist/1/history")

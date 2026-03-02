@@ -24,6 +24,8 @@ def render():
     if len(snapshots) < 2:
         st.warning("Only one snapshot available — no comparison possible.")
         _show_single(snapshots[0])
+        from cfd.dashboard.disclaimer import render_disclaimer
+        render_disclaimer()
         return
 
     # Timeline chart

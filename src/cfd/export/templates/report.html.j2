@@ -72,15 +72,15 @@
                 </div>
                 <div class="info-item">
                     <div class="info-label">h-index</div>
-                    <div class="info-value">{{ author.h_index or '—' }}</div>
+                    <div class="info-value">{{ author.h_index if author.h_index is not none else '—' }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">{{ t_publications }}</div>
-                    <div class="info-value">{{ author.publication_count or '—' }}</div>
+                    <div class="info-value">{{ author.publication_count if author.publication_count is not none else '—' }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">{{ t_citations }}</div>
-                    <div class="info-value">{{ author.citation_count or '—' }}</div>
+                    <div class="info-value">{{ author.citation_count if author.citation_count is not none else '—' }}</div>
                 </div>
             </div>
         </div>

@@ -29,7 +29,10 @@ async def batch_analyze(
     from cfd.data.batch import load_batch_csv
 
     # Write uploaded file to temp (with size limit)
-    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    try:
+        content = await file.read(MAX_UPLOAD_BYTES + 1)
+    finally:
+        await file.close()
     if len(content) > MAX_UPLOAD_BYTES:
         from fastapi import HTTPException
         raise HTTPException(status_code=413, detail=f"File too large. Maximum {MAX_UPLOAD_BYTES} bytes.")
@@ -64,11 +67,11 @@ async def batch_analyze(
                 status="error",
                 error=str(e),
             ))
-        except Exception as e:
+        except Exception:
             results.append(BatchResultItem(
                 surname=entry.surname,
                 status="error",
-                error=str(e),
+                error="Internal analysis error",
             ))
 
     processed = sum(1 for r in results if r.status != "error")

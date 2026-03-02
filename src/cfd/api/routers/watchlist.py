@@ -86,7 +86,10 @@ async def set_sensitivity_overrides(
     repos: dict = Depends(get_repos),
 ):
     """Set per-author sensitivity overrides (§4.4)."""
-    repos["watchlist"].set_sensitivity_overrides(author_id, body.overrides)
+    result = repos["watchlist"].set_sensitivity_overrides(author_id, body.overrides)
+    if not result:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"No watchlist entry for author {author_id}")
     repos["audit"].log(
         "set_sensitivity", target_author_id=author_id,
         details={"overrides": body.overrides, "api_key": key_info.name},

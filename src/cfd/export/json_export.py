@@ -73,6 +73,13 @@ def export_to_json(result: AnalysisResult, output_path: Path, settings: Settings
             "sbd_beauty_threshold": s.sbd_beauty_threshold,
             "sbd_suspicious_threshold": s.sbd_suspicious_threshold,
             "ctx_independent_threshold": s.ctx_independent_threshold,
+            "ssd_similarity_threshold": s.ssd_similarity_threshold,
+            "ssd_interval_days": s.ssd_interval_days,
+            "cc_per_paper_threshold": s.cc_per_paper_threshold,
+            "ana_single_paper_coauthor_threshold": s.ana_single_paper_coauthor_threshold,
+            "pb_k_neighbors": s.pb_k_neighbors,
+            "pb_min_peers": s.pb_min_peers,
+            "cpc_divergence_threshold": s.cpc_divergence_threshold,
         },
     }
 

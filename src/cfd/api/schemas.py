@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ErrorResponse(BaseModel):
@@ -102,8 +102,29 @@ class BatchResponse(BaseModel):
     disclaimer: str = "This is a suspicion score, not a verdict. Final decision rests with a human."
 
 
+_ALLOWED_SENSITIVITY_KEYS = frozenset({
+    "mcr_threshold", "scr_warn_threshold", "scr_high_threshold",
+    "cb_threshold", "ta_z_threshold", "rla_threshold", "gic_threshold",
+    "eigenvector_threshold", "betweenness_threshold", "pagerank_threshold",
+    "community_density_ratio_threshold", "cantelli_z_threshold",
+    "cv_threshold", "sbd_beauty_threshold", "sbd_suspicious_threshold",
+    "ctx_independent_threshold", "ssd_similarity_threshold",
+    "cc_per_paper_threshold", "ana_single_paper_coauthor_threshold",
+    "pb_k_neighbors", "pb_min_peers", "cpc_divergence_threshold",
+})
+
+
 class SensitivityOverridesRequest(BaseModel):
     overrides: dict = Field(default_factory=dict)
+
+    @field_validator("overrides")
+    @classmethod
+    def validate_keys(cls, v: dict) -> dict:
+        bad = set(v) - _ALLOWED_SENSITIVITY_KEYS
+        if bad:
+            msg = f"Invalid sensitivity keys: {sorted(bad)}"
+            raise ValueError(msg)
+        return v
 
 
 class WatchlistAddRequest(BaseModel):

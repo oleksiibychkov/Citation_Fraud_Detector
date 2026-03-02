@@ -14,9 +14,8 @@ class CommunityRepository:
         """Save community detection results."""
         if not communities:
             return []
-        for row in communities:
-            row.setdefault("algorithm_version", algorithm_version)
-        result = self._client.table(self._table).insert(communities).execute()
+        rows = [{**row, "algorithm_version": row.get("algorithm_version", algorithm_version)} for row in communities]
+        result = self._client.table(self._table).insert(rows).execute()
         return result.data or []
 
     def get_by_author_id(self, author_id: int) -> list[dict]:

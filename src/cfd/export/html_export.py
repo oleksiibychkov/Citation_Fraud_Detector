@@ -101,6 +101,7 @@ def _get_translations(lang: str) -> dict:
     """Get translation strings for the template."""
     if lang == "ua":
         return {
+            "report_title": "Звіт CFD",
             "t_author_info": "Інформація про автора",
             "t_name": "Ім'я",
             "t_institution": "Установа",
@@ -119,6 +120,7 @@ def _get_translations(lang: str) -> dict:
             "t_disclaimer": "Це оцінка підозрілості, а не вирок. Остаточне рішення приймає людина.",
         }
     return {
+        "report_title": "CFD Report",
         "t_author_info": "Author Information",
         "t_name": "Name",
         "t_institution": "Institution",

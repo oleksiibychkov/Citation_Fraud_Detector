@@ -43,8 +43,9 @@ def send_score_change_email(
 
     try:
         with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
-            if smtp_user and smtp_password:
+            if smtp_port == 587:
                 server.starttls()
+            if smtp_user and smtp_password:
                 server.login(smtp_user, smtp_password)
             server.sendmail(from_address, [to_address], msg.as_string())
         logger.info("Score change email sent to %s for %s", to_address, author_name)

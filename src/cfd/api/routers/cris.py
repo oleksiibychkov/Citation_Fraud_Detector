@@ -152,10 +152,10 @@ async def pure_webhook(
     """Receive webhook from Pure (Elsevier) when a researcher is added/updated."""
     author = _extract_pure_author(body)
     if author is None or not author.surname:
-        return JSONResponse(status_code=202, content={"status": "accepted", "message": "No author data to process"})
+        return JSONResponse(status_code=202, content={"message": "No author data to process"})
 
     result = _process_cris_author(author, repos, "pure", key_info)
-    return JSONResponse(status_code=202, content={"status": "accepted", **result})
+    return JSONResponse(status_code=202, content={"http_status": "accepted", **result})
 
 
 @router.post("/converis/sync")
@@ -167,10 +167,10 @@ async def converis_sync(
     """REST integration with Converis (Clarivate)."""
     author = _extract_converis_author(body)
     if author is None or not author.surname:
-        return JSONResponse(status_code=202, content={"status": "accepted", "message": "No author data to process"})
+        return JSONResponse(status_code=202, content={"message": "No author data to process"})
 
     result = _process_cris_author(author, repos, "converis", key_info)
-    return JSONResponse(status_code=202, content={"status": "accepted", **result})
+    return JSONResponse(status_code=202, content={"http_status": "accepted", **result})
 
 
 @router.post("/vivo/query")
@@ -182,7 +182,7 @@ async def vivo_query(
     """SPARQL integration with VIVO."""
     author = _extract_vivo_author(body)
     if author is None or not author.surname:
-        return JSONResponse(status_code=202, content={"status": "accepted", "message": "No author data to process"})
+        return JSONResponse(status_code=202, content={"message": "No author data to process"})
 
     result = _process_cris_author(author, repos, "vivo", key_info)
-    return JSONResponse(status_code=202, content={"status": "accepted", **result})
+    return JSONResponse(status_code=202, content={"http_status": "accepted", **result})

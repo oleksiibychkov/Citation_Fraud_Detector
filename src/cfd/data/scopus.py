@@ -149,9 +149,9 @@ class ScopusStrategy(DataSourceStrategy):
             full_name=full_name or None,
             institution=institution,
             discipline=discipline,
-            h_index=int(core.get("h-index", 0)) if core.get("h-index") else None,
-            publication_count=int(core.get("document-count", 0)) if core.get("document-count") else None,
-            citation_count=int(core.get("citation-count", 0)) if core.get("citation-count") else None,
+            h_index=int(core["h-index"]) if core.get("h-index") is not None else None,
+            publication_count=int(core["document-count"]) if core.get("document-count") is not None else None,
+            citation_count=int(core["citation-count"]) if core.get("citation-count") is not None else None,
             source_api="scopus",
             raw_data=data,
         )

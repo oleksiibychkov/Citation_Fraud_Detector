@@ -107,7 +107,11 @@ class CachedHttpClient:
         self._rate_limiter.wait()
         response = self._http.get(url, params=params, headers=headers)
         if response.status_code == 429:
-            retry_after = int(response.headers.get("Retry-After", "5"))
+            retry_after_raw = response.headers.get("Retry-After", "5")
+            try:
+                retry_after = int(retry_after_raw)
+            except ValueError:
+                retry_after = 5
             logger.warning("Rate limited. Waiting %d seconds.", retry_after)
             time.sleep(retry_after)
             raise RateLimitError("Rate limit exceeded")

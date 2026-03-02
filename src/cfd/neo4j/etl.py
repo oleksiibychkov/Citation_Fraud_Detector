@@ -73,7 +73,11 @@ class Neo4jETL:
         for author in authors:
             self.sync_author(author)
         for pub in publications:
-            self.sync_publication(pub, pub.get("author_id"))
+            author_id = pub.get("author_id")
+            if author_id is not None:
+                self.sync_publication(pub, author_id)
+            else:
+                logger.warning("Skipping publication sync — missing author_id: %s", pub.get("work_id"))
         for cit in citations:
             self.sync_citation(cit)
         logger.info(

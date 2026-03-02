@@ -31,9 +31,11 @@ class Neo4jQueries:
     def find_mutual_citations(self, threshold: float = 0.3) -> list[dict]:
         """Find mutually citing author pairs."""
         query = """
-        MATCH (a:Author)-[r1:CITES]->(b:Author)-[r2:CITES]->(a)
+        MATCH (a:Author)-[r:CITES]->(b:Author)
         WHERE id(a) < id(b)
-        WITH a, b, count(r1) AS a_to_b, count(r2) AS b_to_a
+        WITH a, b, sum(r.weight) AS a_to_b
+        MATCH (b)-[r2:CITES]->(a)
+        WITH a, b, a_to_b, sum(r2.weight) AS b_to_a
         WITH a, b, a_to_b, b_to_a,
              2.0 * toFloat(CASE WHEN a_to_b < b_to_a THEN a_to_b ELSE b_to_a END)
              / (a_to_b + b_to_a) AS mcr
