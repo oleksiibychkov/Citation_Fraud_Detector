@@ -262,11 +262,16 @@ class OpenAlexStrategy(DataSourceStrategy):
     def fetch_citations(self, publications: list[Publication], author: AuthorProfile) -> list[Citation]:
         """Fetch citation edges: who cites the author's publications."""
         citations = []
+        seen_edges: set[tuple[str, str]] = set()
         author_work_ids = {pub.work_id for pub in publications}
 
         for pub in publications:
             # Self-citations from references_list
             for ref_id in pub.references_list:
+                edge_key = (pub.work_id, ref_id)
+                if edge_key in seen_edges:
+                    continue
+                seen_edges.add(edge_key)
                 is_self = ref_id in author_work_ids
                 citations.append(
                     Citation(
@@ -279,12 +284,15 @@ class OpenAlexStrategy(DataSourceStrategy):
                 )
 
             # Incoming citations (who cites this publication)
-            self._fetch_citing_works(pub, citations, author)
+            self._fetch_citing_works(pub, citations, author, seen_edges)
 
         logger.info("Collected %d citation edges for %s", len(citations), author.full_name)
         return citations
 
-    def _fetch_citing_works(self, pub: Publication, citations: list[Citation], author: AuthorProfile) -> None:
+    def _fetch_citing_works(
+        self, pub: Publication, citations: list[Citation], author: AuthorProfile,
+        seen_edges: set[tuple[str, str]] | None = None,
+    ) -> None:
         """Fetch works that cite a given publication (for cited_by_timestamps)."""
         cursor = "*"
         per_page = 200
@@ -312,6 +320,13 @@ class OpenAlexStrategy(DataSourceStrategy):
                 if date_str:
                     with contextlib.suppress(ValueError):
                         cite_date = date.fromisoformat(date_str)
+
+                # Deduplicate edges
+                edge_key = (citing_id, pub.work_id)
+                if seen_edges is not None and edge_key in seen_edges:
+                    continue
+                if seen_edges is not None:
+                    seen_edges.add(edge_key)
 
                 # Check if this is a self-citation (any of citing work's authors is our author)
                 is_self = self._is_self_citation(citing_work, author)

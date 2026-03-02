@@ -63,6 +63,8 @@ def export_to_pdf(
     )
 
     styles = getSampleStyleSheet()
+    # Apply Unicode font to styles if registered
+    _apply_unicode_font(styles)
     title_style = ParagraphStyle("CustomTitle", parent=styles["Title"], fontSize=18, spaceAfter=12)
     heading_style = ParagraphStyle("CustomHeading", parent=styles["Heading2"], fontSize=14, spaceAfter=8)
     normal_style = styles["Normal"]
@@ -267,6 +269,18 @@ def _register_unicode_font():
             pdfmetrics.registerFont(TTFont("DejaVuSans", font_path))
     except Exception:
         logger.debug("Could not register Unicode font, using defaults", exc_info=True)
+
+
+def _apply_unicode_font(styles):
+    """Apply registered Unicode font to all paragraph styles."""
+    try:
+        from reportlab.pdfbase import pdfmetrics
+
+        if "DejaVuSans" in pdfmetrics.getRegisteredFontNames():
+            for style in styles.byName.values():
+                style.fontName = "DejaVuSans"
+    except Exception:
+        pass
 
 
 def _level_to_color(level: str):

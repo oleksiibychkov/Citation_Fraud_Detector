@@ -62,10 +62,12 @@ def render():
 
 
 def _load_watchlist() -> list[dict]:
-    """Load watchlist entries from database."""
+    """Load watchlist entries enriched with author info and latest scores."""
     try:
         from cfd.config.settings import Settings
         from cfd.db.client import get_supabase_client
+        from cfd.db.repositories.authors import AuthorRepository
+        from cfd.db.repositories.fraud_scores import FraudScoreRepository
         from cfd.db.repositories.watchlist import WatchlistRepository
 
         settings = Settings()
@@ -73,7 +75,25 @@ def _load_watchlist() -> list[dict]:
             return []
 
         client = get_supabase_client(settings)
-        repo = WatchlistRepository(client)
-        return repo.get_active()
+        watchlist_repo = WatchlistRepository(client)
+        author_repo = AuthorRepository(client)
+        score_repo = FraudScoreRepository(client)
+
+        raw_entries = watchlist_repo.get_active()
+
+        enriched = []
+        for entry in raw_entries:
+            author_id = entry.get("author_id")
+            author = author_repo.get_by_id(author_id) if author_id else None
+            latest_score = score_repo.get_latest_by_author(author_id) if author_id else None
+
+            enriched.append({
+                "author_name": (author or {}).get("full_name") or (author or {}).get("surname", "Unknown"),
+                "fraud_score": (latest_score or {}).get("score", 0),
+                "confidence_level": (latest_score or {}).get("confidence_level", "normal"),
+                "reason": entry.get("reason", "—"),
+                "author_id": author_id,
+            })
+        return enriched
     except Exception:
         return []

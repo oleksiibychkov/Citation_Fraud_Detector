@@ -49,7 +49,7 @@ def format_results_table(result: AnalysisResult) -> None:
     for ind in result.indicators:
         if ind.indicator_type in result.triggered_indicators:
             status = "[red]TRIGGERED[/red]"
-        elif ind.details.get("status") == "N/A":
+        elif (ind.details or {}).get("status") == "N/A":
             status = "[dim]N/A[/dim]"
         else:
             status = "[green]OK[/green]"

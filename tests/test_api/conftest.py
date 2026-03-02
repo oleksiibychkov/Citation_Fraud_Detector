@@ -71,10 +71,10 @@ def mock_repos():
     repos["audit"].get_all.return_value = []
     repos["audit"].log.return_value = None
     repos["algorithm"].get_by_version.return_value = {
-        "version": "5.0.0", "release_date": "2024-01-01", "indicator_count": 20,
+        "version": "5.0.0", "release_date": "2024-01-01", "indicator_count": 22,
     }
     repos["algorithm"].get_all.return_value = [
-        {"version": "5.0.0", "release_date": "2024-01-01", "indicator_count": 20},
+        {"version": "5.0.0", "release_date": "2024-01-01", "indicator_count": 22},
     ]
     return repos
 

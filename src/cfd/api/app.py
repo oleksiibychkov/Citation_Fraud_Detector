@@ -67,7 +67,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.state.settings = s
 
-    # CORS (credentials only allowed with explicit origins, not wildcard)
+    # Middleware order: added in LIFO order — last added runs first.
+    # We want: CORS → SlowAPI → I18n → handlers, so add in reverse.
+    app.add_middleware(I18nMiddleware)
+
+    app.state.limiter = limiter
+    app.add_middleware(SlowAPIMiddleware)
+
     origins = [o.strip() for o in s.api_cors_origins.split(",") if o.strip()]
     allow_credentials = origins != ["*"]
     app.add_middleware(
@@ -77,13 +83,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    # I18n middleware
-    app.add_middleware(I18nMiddleware)
-
-    # Rate limiter middleware
-    app.state.limiter = limiter
-    app.add_middleware(SlowAPIMiddleware)
 
     # Exception handlers
     @app.exception_handler(AuthorNotFoundError)

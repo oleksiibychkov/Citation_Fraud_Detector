@@ -91,7 +91,7 @@ def _render_timeline(snapshots: list[dict]):
     try:
         import plotly.graph_objects as go
 
-        dates = [s.get("snapshot_date", s.get("created_at", ""))[:10] for s in reversed(snapshots)]
+        dates = [(s.get("snapshot_date") or s.get("created_at") or "")[:10] for s in reversed(snapshots)]
         scores = [s.get("fraud_score", 0) for s in reversed(snapshots)]
 
         fig = go.Figure()

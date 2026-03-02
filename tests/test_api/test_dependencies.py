@@ -12,20 +12,18 @@ from cfd.config.settings import Settings
 
 
 class TestGetSettings:
-    def setup_method(self):
-        get_settings.cache_clear()
+    def test_returns_settings_from_app_state(self):
+        custom = Settings(supabase_url="https://test.co", supabase_key="key")
+        request = MagicMock()
+        request.app.state.settings = custom
+        result = get_settings(request)
+        assert result is custom
 
-    def teardown_method(self):
-        get_settings.cache_clear()
-
-    def test_returns_settings_instance(self):
-        result = get_settings()
+    def test_returns_default_when_no_state(self):
+        request = MagicMock()
+        request.app.state.settings = None
+        result = get_settings(request)
         assert isinstance(result, Settings)
-
-    def test_cached(self):
-        s1 = get_settings()
-        s2 = get_settings()
-        assert s1 is s2
 
 
 class TestGetSupabase:

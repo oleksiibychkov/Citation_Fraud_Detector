@@ -16,6 +16,7 @@ class Neo4jQueries:
 
     def find_citation_rings(self, min_length: int = 3, limit: int = 100) -> list[dict]:
         """Find citation rings (cycles) in the graph."""
+        min_length = max(2, min(int(min_length), 10))
         query = f"""
         MATCH path = (a:Author)-[:CITES*{min_length}..10]->(a)
         WITH [n IN nodes(path) | n.author_id] AS ring

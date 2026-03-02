@@ -17,6 +17,7 @@ def compute_pb(
     author_repo=None,
     k: int = 10,
     min_peers: int = 3,
+    author_id: int | None = None,
 ) -> IndicatorResult:
     """Peer Benchmark: compare author metrics with k-NN matched peers.
 
@@ -62,7 +63,7 @@ def compute_pb(
         if peer_repo and hasattr(peer_repo, "save"):
             peer_ids = [p.get("id") for p in peers if p.get("id")]
             peer_repo.save(
-                author_id=peers[0].get("id", 0),
+                author_id=author_id or peers[0].get("id", 0),
                 peer_author_ids=peer_ids,
                 discipline=author_data.profile.discipline or "unknown",
                 matching_criteria={"k": k, "min_peers": min_peers},

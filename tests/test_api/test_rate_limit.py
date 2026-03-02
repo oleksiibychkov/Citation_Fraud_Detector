@@ -6,13 +6,17 @@ from cfd.api.rate_limit import _key_func
 
 
 class TestRateLimitKeyFunc:
-    def test_key_from_api_key_header(self):
+    def test_key_from_api_key_header_is_hashed(self):
         class FakeRequest:
             headers = {"x-api-key": "my-key"}
             scope = {"type": "http"}
             client = type("C", (), {"host": "127.0.0.1"})()
 
-        assert _key_func(FakeRequest()) == "my-key"
+        result = _key_func(FakeRequest())
+        # Should be a hex hash prefix, not the raw key
+        assert result != "my-key"
+        assert len(result) == 16
+        assert all(c in "0123456789abcdef" for c in result)
 
     def test_key_fallback_to_ip(self):
         class FakeRequest:

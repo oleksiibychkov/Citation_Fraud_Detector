@@ -30,7 +30,7 @@ def export_to_csv(result: AnalysisResult, output_path: Path, settings: Settings 
         writer.writerow(["indicator_type", "value", "triggered", "details"])
         for ind in result.indicators:
             triggered = ind.indicator_type in result.triggered_indicators
-            details_str = "; ".join(f"{k}={v}" for k, v in ind.details.items() if k != "status")
+            details_str = "; ".join(f"{k}={v}" for k, v in (ind.details or {}).items() if k != "status")
             writer.writerow([
                 ind.indicator_type,
                 round(ind.value, 6),

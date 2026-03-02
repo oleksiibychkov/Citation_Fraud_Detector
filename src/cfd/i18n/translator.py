@@ -1,12 +1,13 @@
 """Simple i18n translation system using flat JSON dictionaries."""
 
+import contextvars
 import json
 from functools import lru_cache
 from pathlib import Path
 
 _LOCALES_DIR = Path(__file__).parent.parent.parent.parent / "locales"
 
-_current_lang = "ua"
+_current_lang: contextvars.ContextVar[str] = contextvars.ContextVar("_current_lang", default="ua")
 
 
 @lru_cache(maxsize=4)
@@ -19,14 +20,13 @@ def _load_locale(lang: str) -> dict:
 
 
 def set_language(lang: str) -> None:
-    global _current_lang
     if lang not in ("ua", "en"):
         raise ValueError(f"Unsupported language: {lang}")
-    _current_lang = lang
+    _current_lang.set(lang)
 
 
 def get_language() -> str:
-    return _current_lang
+    return _current_lang.get()
 
 
 def t(key: str, lang: str | None = None, **kwargs) -> str:
@@ -37,7 +37,7 @@ def t(key: str, lang: str | None = None, **kwargs) -> str:
         lang: Override language for this call (thread-safe for async use).
         **kwargs: Format arguments for the translated string.
     """
-    locale = _load_locale(lang or _current_lang)
+    locale = _load_locale(lang or _current_lang.get())
     parts = key.split(".")
     value = locale
     for part in parts:

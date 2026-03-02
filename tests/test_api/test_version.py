@@ -9,7 +9,7 @@ class TestCurrentVersion:
         assert resp.status_code == 200
         data = resp.json()
         assert data["version"] == "5.0.0"
-        assert data["indicator_count"] == 20
+        assert data["indicator_count"] == 22
 
     def test_current_not_found_returns_default(self, client_reader, mock_repos):
         mock_repos["algorithm"].get_by_version.return_value = None

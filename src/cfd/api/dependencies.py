@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request, status
@@ -13,10 +12,9 @@ from cfd.config.settings import Settings
 logger = logging.getLogger(__name__)
 
 
-@lru_cache
-def get_settings() -> Settings:
-    """Cached application settings."""
-    return Settings()
+def get_settings(request: Request) -> Settings:
+    """Get application settings from app state (set by create_app)."""
+    return getattr(request.app.state, "settings", None) or Settings()
 
 
 def get_supabase(request: Request) -> Any:

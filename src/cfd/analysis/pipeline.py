@@ -233,6 +233,7 @@ class AnalysisPipeline:
                 author_repo=self._author_repo,
                 k=self._settings.pb_k_neighbors,
                 min_peers=self._settings.pb_min_peers,
+                author_id=author_id,
             ))
         except Exception:
             logger.warning("PB computation failed", exc_info=True)

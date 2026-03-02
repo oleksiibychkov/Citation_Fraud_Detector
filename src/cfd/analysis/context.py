@@ -222,11 +222,10 @@ def _count_review_articles(author_data: AuthorData) -> int:
         if not pub.title:
             continue
         title_lower = pub.title.lower()
-        # Heuristic: review articles often have these patterns in titles
-        if any(kw in title_lower for kw in ("review", "survey", "meta-analysis", "systematic review", "overview")):
+        # Heuristic: review articles often have these patterns in titles or type field
+        if (
+            any(kw in title_lower for kw in ("review", "survey", "meta-analysis", "systematic review", "overview"))
+            or (pub.raw_data and pub.raw_data.get("type") in ("review", "review-article"))
+        ):
             count += 1
-        # Also check raw_data for type field
-        if pub.raw_data and pub.raw_data.get("type") in ("review", "review-article"):
-            count += 1
-            continue
     return count

@@ -15,6 +15,7 @@ from cfd.exceptions import CFDError
 router = APIRouter(prefix="/batch", tags=["Batch"])
 
 MAX_BATCH_SIZE = 50
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
 @router.post("/analyze", response_model=BatchResponse)
@@ -27,8 +28,11 @@ async def batch_analyze(
     """Batch analyze authors from uploaded CSV file."""
     from cfd.data.batch import load_batch_csv
 
-    # Write uploaded file to temp
-    content = await file.read()
+    # Write uploaded file to temp (with size limit)
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum {MAX_UPLOAD_BYTES} bytes.")
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="wb") as tmp:
         tmp.write(content)
         tmp_path = Path(tmp.name)

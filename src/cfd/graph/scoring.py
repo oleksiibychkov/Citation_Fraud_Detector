@@ -40,6 +40,15 @@ CONFIDENCE_LEVELS: list[tuple[float, float, str]] = [
 ]
 
 
+def _normalize_with_cap(value: float, cap: float) -> float:
+    """Normalize value to [0, 1] given a cap threshold. Guards against zero cap."""
+    if value <= 0:
+        return 0.0
+    if cap <= 0 or value >= cap:
+        return 1.0
+    return value / cap
+
+
 def _normalize_indicator(indicator: IndicatorResult, settings: Settings) -> float:
     """Normalize an indicator value to [0, 1] range based on thresholds."""
     itype = indicator.indicator_type
@@ -51,60 +60,31 @@ def _normalize_indicator(indicator: IndicatorResult, settings: Settings) -> floa
             return 0.0
         if value >= settings.scr_high_threshold:
             return 1.0
+        delta = settings.scr_high_threshold - settings.scr_warn_threshold
         if value >= settings.scr_warn_threshold:
-            return 0.5 + 0.5 * (value - settings.scr_warn_threshold) / (
-                settings.scr_high_threshold - settings.scr_warn_threshold
-            )
-        return 0.5 * value / settings.scr_warn_threshold
+            return 0.5 + 0.5 * (value - settings.scr_warn_threshold) / delta if delta > 0 else 1.0
+        return 0.5 * value / settings.scr_warn_threshold if settings.scr_warn_threshold > 0 else 1.0
 
     if itype == "MCR":
-        if value <= 0:
-            return 0.0
-        if value >= settings.mcr_threshold * 2:
-            return 1.0
-        return value / (settings.mcr_threshold * 2)
+        return _normalize_with_cap(value, settings.mcr_threshold * 2)
 
     if itype == "CB":
-        if value <= 0:
-            return 0.0
-        if value >= settings.cb_threshold * 2:
-            return 1.0
-        return value / (settings.cb_threshold * 2)
+        return _normalize_with_cap(value, settings.cb_threshold * 2)
 
     if itype == "RLA":
-        if value <= 0:
-            return 0.0
-        if value >= settings.rla_threshold * 2:
-            return 1.0
-        return value / (settings.rla_threshold * 2)
+        return _normalize_with_cap(value, settings.rla_threshold * 2)
 
     if itype == "GIC":
-        if value <= 0:
-            return 0.0
-        if value >= settings.gic_threshold * 1.5:
-            return 1.0
-        return value / (settings.gic_threshold * 1.5)
+        return _normalize_with_cap(value, settings.gic_threshold * 1.5)
 
     if itype == "EIGEN":
-        if value <= 0:
-            return 0.0
-        if value >= settings.eigenvector_threshold * 2:
-            return 1.0
-        return value / (settings.eigenvector_threshold * 2)
+        return _normalize_with_cap(value, settings.eigenvector_threshold * 2)
 
     if itype == "BETWEENNESS":
-        if value <= 0:
-            return 0.0
-        if value >= settings.betweenness_threshold * 2:
-            return 1.0
-        return value / (settings.betweenness_threshold * 2)
+        return _normalize_with_cap(value, settings.betweenness_threshold * 2)
 
     if itype == "PAGERANK":
-        if value <= 0:
-            return 0.0
-        if value >= settings.pagerank_threshold * 2:
-            return 1.0
-        return value / (settings.pagerank_threshold * 2)
+        return _normalize_with_cap(value, settings.pagerank_threshold * 2)
 
     # TA, HTA, COMMUNITY, CLIQUE, CV, SBD, CTX, ANA, PB, SSD, CC, CPC, JSCR, COERCE are already [0, 1]
     return min(max(value, 0.0), 1.0)

@@ -76,7 +76,7 @@ class IGraphEngine(GraphEngine):
             scores = self._ig.betweenness(weights="weight")
             # Normalize to [0, 1]
             n = self._ig.vcount()
-            norm = (n - 1) * (n - 2) / 2 if n > 2 else 1
+            norm = (n - 1) * (n - 2) if n > 2 else 1
             self._between_cache = {self._idx_to_node[i]: s / norm for i, s in enumerate(scores)}
         return self._between_cache.get(node_id, 0.0)
 
@@ -95,7 +95,7 @@ class IGraphEngine(GraphEngine):
         return result
 
     def find_cliques(self, min_size: int = 3) -> list[set]:
-        cliques = self._ig_undirected.cliques(min=min_size)
+        cliques = self._ig_undirected.maximal_cliques(min=min_size)
         return [
             {self._idx_to_node[idx] for idx in c}
             for c in cliques

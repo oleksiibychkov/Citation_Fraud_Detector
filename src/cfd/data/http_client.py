@@ -100,7 +100,7 @@ class CachedHttpClient:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=60),
-        retry=retry_if_exception_type((httpx.ConnectError, httpx.ReadTimeout)),
+        retry=retry_if_exception_type((httpx.ConnectError, httpx.ReadTimeout, RateLimitError, APIError)),
         reraise=True,
     )
     def _do_request(self, url: str, params: dict | None, headers: dict | None) -> httpx.Response:
