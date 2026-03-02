@@ -124,8 +124,10 @@ def _process_cris_author(
             result["status"] = "added_to_watchlist"
             result["author_id"] = author_id
         else:
-            result["status"] = "queued_for_analysis"
+            # No background queue implemented yet — mark as pending
+            result["status"] = "analysis_pending"
             result["author_id"] = author_id
+            logger.info("Analysis requested for author %s via CRIS %s (no queue)", author_id, source)
     else:
         result["status"] = "author_not_found"
 
@@ -145,7 +147,7 @@ def _process_cris_author(
 
 
 @router.post("/pure/webhook")
-async def pure_webhook(
+def pure_webhook(
     body: PureWebhookBody,
     key_info: APIKeyInfo = Depends(require_role("admin")),
     repos: dict = Depends(get_repos),
@@ -160,7 +162,7 @@ async def pure_webhook(
 
 
 @router.post("/converis/sync")
-async def converis_sync(
+def converis_sync(
     body: ConverisSyncBody,
     key_info: APIKeyInfo = Depends(require_role("admin")),
     repos: dict = Depends(get_repos),
@@ -175,7 +177,7 @@ async def converis_sync(
 
 
 @router.post("/vivo/query")
-async def vivo_query(
+def vivo_query(
     body: VIVOQueryBody,
     key_info: APIKeyInfo = Depends(require_role("admin")),
     repos: dict = Depends(get_repos),

@@ -107,7 +107,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(RateLimitExceeded)
     async def _slowapi_rate_limit(_request: Request, exc: RateLimitExceeded):
-        return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded"},
+            headers={"Retry-After": "60"},
+        )
 
     @app.exception_handler(CFDError)
     async def _cfd_error(_request: Request, exc: CFDError):

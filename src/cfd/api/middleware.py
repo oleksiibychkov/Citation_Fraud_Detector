@@ -13,9 +13,11 @@ class I18nMiddleware(BaseHTTPMiddleware):
     """Set language from Accept-Language header per request."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        settings = getattr(request.app.state, "settings", None)
+        default_lang = getattr(settings, "default_language", "ua") if settings else "ua"
         lang_header = request.headers.get("accept-language", "")
         if lang_header.lower().startswith("en"):
             set_language("en")
         else:
-            set_language("ua")
+            set_language(default_lang)
         return await call_next(request)

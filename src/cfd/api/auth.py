@@ -68,7 +68,7 @@ async def get_api_key(
                     rate_limit_per_minute=row.get("rate_limit_per_minute", 60),
                 )
         except Exception:
-            logger.debug("DB API key lookup failed, trying env fallback", exc_info=True)
+            logger.warning("DB API key lookup failed, trying env fallback", exc_info=True)
 
     # Env fallback: CFD_API_KEYS=key1,key2,key3 (all get admin role)
     from cfd.config.settings import Settings
@@ -89,7 +89,7 @@ def require_role(*allowed_roles: str):
         if key_info.role not in allowed_roles:
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
-                detail=f"Role '{key_info.role}' not allowed. Required: {', '.join(allowed_roles)}",
+                detail="Insufficient permissions",
             )
         return key_info
 

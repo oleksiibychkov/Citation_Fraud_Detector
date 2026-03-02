@@ -25,11 +25,6 @@ from cfd.db.repositories.fraud_scores import FraudScoreRepository
 from cfd.db.repositories.indicators import IndicatorRepository
 from cfd.db.repositories.publications import PublicationRepository
 from cfd.graph.builder import build_citation_graph
-from cfd.graph.centrality import (
-    compute_betweenness_centrality,
-    compute_eigenvector_centrality,
-    compute_pagerank,
-)
 from cfd.graph.cliques import clique_to_indicator, detect_cliques
 from cfd.graph.community import community_to_indicator, detect_communities
 from cfd.graph.engine import GraphEngine, select_engine
@@ -47,6 +42,22 @@ from cfd.graph.scoring import DEFAULT_WEIGHTS, compute_fraud_score
 from cfd.graph.theorems import TheoremResult, run_hierarchy
 
 logger = logging.getLogger(__name__)
+
+
+def _aggregate_centrality(engine, work_ids: set[str], metric: str) -> IndicatorResult:
+    """Compute mean centrality over an author's works in the work-level graph."""
+    method_map = {
+        "EIGEN": engine.eigenvector_centrality,
+        "BETWEENNESS": engine.betweenness_centrality,
+        "PAGERANK": engine.pagerank,
+    }
+    fn = method_map[metric]
+    values = [fn(wid) for wid in work_ids if fn(wid) > 0]
+    avg = sum(values) / len(values) if values else 0.0
+    return IndicatorResult(
+        metric, avg,
+        {"metric": f"mean_{metric.lower()}_centrality", "works_measured": len(values)},
+    )
 
 
 @dataclass
@@ -141,10 +152,11 @@ class AnalysisPipeline:
         # Step 5c: Extended centrality via graph engine
         engine = self._select_engine(citation_graph)
         if engine is not None:
-            author_node = author_data.profile.scopus_id or author_data.profile.full_name
-            indicators.append(compute_eigenvector_centrality(engine, author_node))
-            indicators.append(compute_betweenness_centrality(engine, author_node))
-            indicators.append(compute_pagerank(engine, author_node))
+            # Graph is work-level; aggregate centrality over author's works
+            author_work_ids = {pub.work_id for pub in author_data.publications}
+            indicators.append(_aggregate_centrality(engine, author_work_ids, "EIGEN"))
+            indicators.append(_aggregate_centrality(engine, author_work_ids, "BETWEENNESS"))
+            indicators.append(_aggregate_centrality(engine, author_work_ids, "PAGERANK"))
 
         # Step 5d: Community detection
         if engine is not None:

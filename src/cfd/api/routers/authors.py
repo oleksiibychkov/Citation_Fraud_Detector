@@ -49,7 +49,7 @@ def _get_author_or_404(repos: dict[str, Any], author_id: int) -> dict:
 
 
 @router.get("/{author_id}/report", response_model=ReportResponse)
-async def get_author_report(
+def get_author_report(
     author_id: int,
     key_info: APIKeyInfo = Depends(require_role("reader", "analyst", "admin")),
     repos: dict = Depends(get_repos),
@@ -87,7 +87,7 @@ async def get_author_report(
 
 
 @router.get("/{author_id}/score", response_model=ScoreResponse)
-async def get_author_score(
+def get_author_score(
     author_id: int,
     key_info: APIKeyInfo = Depends(require_role("reader", "analyst", "admin")),
     repos: dict = Depends(get_repos),
@@ -107,7 +107,7 @@ async def get_author_score(
 
 
 @router.get("/{author_id}/indicators", response_model=IndicatorsResponse)
-async def get_author_indicators(
+def get_author_indicators(
     author_id: int,
     key_info: APIKeyInfo = Depends(require_role("reader", "analyst", "admin")),
     repos: dict = Depends(get_repos),
@@ -132,7 +132,7 @@ async def get_author_indicators(
 
 
 @router.get("/{author_id}/graph", response_model=GraphResponse)
-async def get_author_graph(
+def get_author_graph(
     author_id: int,
     key_info: APIKeyInfo = Depends(require_role("reader", "analyst", "admin")),
     repos: dict = Depends(get_repos),

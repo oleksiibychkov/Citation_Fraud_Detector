@@ -87,7 +87,7 @@ def export_to_html(
     # Render template
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(str(_TEMPLATE_DIR)),
-        autoescape=jinja2.select_autoescape(["html"]),
+        autoescape=jinja2.select_autoescape(["html", "html.j2", "j2"]),
     )
     template = env.get_template("report.html.j2")
     html_content = template.render(**context)

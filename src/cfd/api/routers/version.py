@@ -13,7 +13,7 @@ router = APIRouter(prefix="/version", tags=["Version"])
 
 
 @router.get("/current", response_model=VersionInfo)
-async def get_current_version(
+def get_current_version(
     key_info=Depends(require_role("reader", "analyst", "admin")),
     repos: dict = Depends(get_repos),
     settings: Settings = Depends(get_settings),
@@ -33,7 +33,7 @@ async def get_current_version(
 
 
 @router.get("/history", response_model=list[VersionInfo])
-async def get_version_history(
+def get_version_history(
     key_info=Depends(require_role("reader", "analyst", "admin")),
     repos: dict = Depends(get_repos),
 ):

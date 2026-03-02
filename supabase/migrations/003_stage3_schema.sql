@@ -165,5 +165,7 @@ ON CONFLICT (discipline) DO NOTHING;
 INSERT INTO algorithm_versions (version, release_date, indicator_count, changelog) VALUES
 ('1.0.0', '2025-01-01', 5, 'MVP: SCR, MCR, CB, TA, HTA'),
 ('2.0.0', '2025-06-01', 12, 'Graph analysis: RLA, GIC, EIGEN, BETWEENNESS, PAGERANK, COMMUNITY, CLIQUE + Theorems 1-3'),
-('3.0.0', '2025-12-01', 15, 'Temporal analysis: CV, SBD, CTX + discipline baselines + enhanced TA/HTA')
+('3.0.0', '2025-12-01', 15, 'Temporal analysis: CV, SBD, CTX + discipline baselines + enhanced TA/HTA'),
+('4.0.0', '2026-01-15', 20, 'Stage 5: ANA, CC, SSD, PB, CPC + peer benchmarking + calibration'),
+('5.0.0', '2026-02-15', 22, 'Stage 9: JSCR, COERCE + CRIS integration + notifications + incremental updates')
 ON CONFLICT (version) DO NOTHING;

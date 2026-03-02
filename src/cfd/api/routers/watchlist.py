@@ -13,7 +13,7 @@ router = APIRouter(prefix="/watchlist", tags=["Watchlist"])
 
 
 @router.post("/add", response_model=WatchlistEntry)
-async def add_to_watchlist(
+def add_to_watchlist(
     body: WatchlistAddRequest,
     key_info: APIKeyInfo = Depends(require_role("analyst", "admin")),
     repos: dict = Depends(get_repos),
@@ -40,7 +40,7 @@ async def add_to_watchlist(
 
 
 @router.get("", response_model=list[WatchlistEntry])
-async def list_watchlist(
+def list_watchlist(
     key_info: APIKeyInfo = Depends(require_role("reader", "analyst", "admin")),
     repos: dict = Depends(get_repos),
 ):
@@ -59,7 +59,7 @@ async def list_watchlist(
 
 
 @router.get("/{author_id}/history", response_model=list[WatchlistHistoryEntry])
-async def get_watchlist_history(
+def get_watchlist_history(
     author_id: int,
     key_info: APIKeyInfo = Depends(require_role("reader", "analyst", "admin")),
     repos: dict = Depends(get_repos),
@@ -79,7 +79,7 @@ async def get_watchlist_history(
 
 
 @router.put("/{author_id}/sensitivity")
-async def set_sensitivity_overrides(
+def set_sensitivity_overrides(
     author_id: int,
     body: SensitivityOverridesRequest,
     key_info: APIKeyInfo = Depends(require_role("analyst", "admin")),

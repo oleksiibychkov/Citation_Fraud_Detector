@@ -249,6 +249,15 @@ def export_antiranking_pdf(
         ]))
 
     elements.append(table)
+    elements.append(Spacer(1, 10 * mm))
+
+    from reportlab.lib.styles import ParagraphStyle
+
+    disclaimer_style = ParagraphStyle(
+        "Disclaimer", parent=styles["Normal"], fontSize=9, textColor=colors.grey,
+    )
+    elements.append(Paragraph(translations["disclaimer"], disclaimer_style))
+
     doc.build(elements)
 
 

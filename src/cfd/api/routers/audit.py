@@ -12,7 +12,7 @@ router = APIRouter(prefix="/audit", tags=["Audit"])
 
 
 @router.get("", response_model=list[AuditEntry])
-async def get_audit_log(
+def get_audit_log(
     limit: int = Query(100, le=500, ge=1),
     offset: int = Query(0, ge=0),
     key_info: APIKeyInfo = Depends(require_role("admin")),
