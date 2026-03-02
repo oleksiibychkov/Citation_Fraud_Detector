@@ -1,0 +1,78 @@
+"""Batch analysis endpoint."""
+
+from __future__ import annotations
+
+import tempfile
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, UploadFile
+
+from cfd.api.auth import APIKeyInfo, require_role
+from cfd.api.dependencies import get_pipeline, get_repos
+from cfd.api.schemas import BatchResponse, BatchResultItem
+from cfd.exceptions import CFDError
+
+router = APIRouter(prefix="/batch", tags=["Batch"])
+
+MAX_BATCH_SIZE = 50
+
+
+@router.post("/analyze", response_model=BatchResponse)
+async def batch_analyze(
+    file: UploadFile,
+    key_info: APIKeyInfo = Depends(require_role("analyst", "admin")),
+    pipeline=Depends(get_pipeline),
+    repos: dict = Depends(get_repos),
+):
+    """Batch analyze authors from uploaded CSV file."""
+    from cfd.data.batch import load_batch_csv
+
+    # Write uploaded file to temp
+    content = await file.read()
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="wb") as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
+
+    try:
+        validation = load_batch_csv(tmp_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    errors = list(validation.errors)
+    entries = validation.entries[:MAX_BATCH_SIZE]
+
+    if len(validation.entries) > MAX_BATCH_SIZE:
+        errors.append(f"Batch truncated to {MAX_BATCH_SIZE} entries (submitted {len(validation.entries)})")
+
+    results: list[BatchResultItem] = []
+    for entry in entries:
+        try:
+            result = pipeline.analyze(entry.surname, scopus_id=entry.scopus_id, orcid=entry.orcid)
+            results.append(BatchResultItem(
+                surname=entry.surname,
+                status=result.status,
+                fraud_score=result.fraud_score,
+                confidence_level=result.confidence_level,
+            ))
+        except CFDError as e:
+            results.append(BatchResultItem(
+                surname=entry.surname,
+                status="error",
+                error=str(e),
+            ))
+        except Exception as e:
+            results.append(BatchResultItem(
+                surname=entry.surname,
+                status="error",
+                error=str(e),
+            ))
+
+    processed = sum(1 for r in results if r.status != "error")
+
+    repos["audit"].log(
+        "batch_analyze",
+        details={"total": len(entries), "processed": processed, "api_key": key_info.name},
+        user_id=key_info.name, api_key_id=key_info.key_id,
+    )
+
+    return BatchResponse(total=len(entries), processed=processed, results=results, errors=errors)

@@ -75,5 +75,13 @@
         "cc": "Citation Cannibalism",
         "cpc": "Cross-Platform Consistency",
         "calibration": "Weight Calibration"
+    },
+    "api": {
+        "unauthorized": "Authentication required. Provide a valid X-API-Key header.",
+        "forbidden": "Insufficient permissions for this operation.",
+        "rate_limited": "Rate limit exceeded. Please try again later.",
+        "db_unavailable": "Database temporarily unavailable.",
+        "batch_started": "Batch analysis started: {count} entries",
+        "batch_complete": "Batch analysis complete: {processed}/{total} processed"
     }
 }

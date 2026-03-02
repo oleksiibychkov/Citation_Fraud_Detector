@@ -1,0 +1,24 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - CFD_SUPABASE_URL=${CFD_SUPABASE_URL:-}
+      - CFD_SUPABASE_KEY=${CFD_SUPABASE_KEY:-}
+      - CFD_API_KEYS=${CFD_API_KEYS:-}
+      - CFD_API_CORS_ORIGINS=${CFD_API_CORS_ORIGINS:-*}
+    restart: unless-stopped
+
+  neo4j:
+    image: neo4j:5-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-changeme}
+    volumes:
+      - neo4j_data:/data
+
+volumes:
+  neo4j_data:

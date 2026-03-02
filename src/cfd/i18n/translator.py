@@ -29,9 +29,15 @@ def get_language() -> str:
     return _current_lang
 
 
-def t(key: str, **kwargs) -> str:
-    """Translate a dotted key path, e.g. t("error.author_not_found", author="Smith")."""
-    locale = _load_locale(_current_lang)
+def t(key: str, lang: str | None = None, **kwargs) -> str:
+    """Translate a dotted key path, e.g. t("error.author_not_found", author="Smith").
+
+    Args:
+        key: Dotted locale key (e.g. "error.author_not_found").
+        lang: Override language for this call (thread-safe for async use).
+        **kwargs: Format arguments for the translated string.
+    """
+    locale = _load_locale(lang or _current_lang)
     parts = key.split(".")
     value = locale
     for part in parts:

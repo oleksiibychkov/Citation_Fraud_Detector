@@ -1,0 +1,21 @@
+name: Deploy
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t cfd-api:${{ github.ref_name }} .
+
+      - name: Smoke test
+        run: |
+          docker run -d --name cfd-smoke -p 8000:8000 cfd-api:${{ github.ref_name }}
+          sleep 3
+          curl -sf http://localhost:8000/health | grep -q '"status":"ok"'
+          docker stop cfd-smoke

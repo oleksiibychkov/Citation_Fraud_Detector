@@ -78,6 +78,13 @@ class Settings(BaseSettings):
     # Cross-Platform Consistency (Stage 5)
     cpc_divergence_threshold: float = 0.20
 
+    # API Server (Stage 6)
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+    api_cors_origins: str = "*"
+    api_rate_limit_per_minute: int = 60
+    api_keys: str = ""  # comma-separated fallback keys when DB unavailable
+
     # Scalability
     igraph_node_threshold: int = 50_000
 

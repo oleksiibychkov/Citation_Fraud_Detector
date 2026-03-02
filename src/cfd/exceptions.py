@@ -35,3 +35,11 @@ class Neo4jConnectionError(CFDError):
 
 class GraphEngineError(CFDError):
     """Graph engine computation failed."""
+
+
+class AuthorizationError(CFDError):
+    """Unauthorized or forbidden API access."""
+
+
+class DatabaseUnavailableError(CFDError):
+    """Database is not reachable."""
