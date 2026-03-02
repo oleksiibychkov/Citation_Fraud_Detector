@@ -130,6 +130,42 @@ class TestContextualCheckSignals:
         signal_types = [s["type"] for s in result.details["signals"]]
         assert "low_citation_pub_correlation" in signal_types
 
+    def test_ssd_adds_signal(self):
+        indicators = {
+            "TA": _indicator("TA", 0.6),
+            "SSD": _indicator("SSD", 0.4),
+        }
+        result = contextual_check(_make_author_data(), indicators)
+        signal_types = [s["type"] for s in result.details["signals"]]
+        assert "salami_slicing" in signal_types
+
+    def test_cc_adds_signal(self):
+        indicators = {
+            "TA": _indicator("TA", 0.6),
+            "CC": _indicator("CC", 0.4),
+        }
+        result = contextual_check(_make_author_data(), indicators)
+        signal_types = [s["type"] for s in result.details["signals"]]
+        assert "citation_cannibalism" in signal_types
+
+    def test_ana_adds_signal(self):
+        indicators = {
+            "TA": _indicator("TA", 0.6),
+            "ANA": _indicator("ANA", 0.5),
+        }
+        result = contextual_check(_make_author_data(), indicators)
+        signal_types = [s["type"] for s in result.details["signals"]]
+        assert "authorship_anomaly" in signal_types
+
+    def test_cpc_adds_signal(self):
+        indicators = {
+            "TA": _indicator("TA", 0.6),
+            "CPC": _indicator("CPC", 0.4),
+        }
+        result = contextual_check(_make_author_data(), indicators)
+        signal_types = [s["type"] for s in result.details["signals"]]
+        assert "cross_platform_inconsistency" in signal_types
+
     def test_multiple_signals_increase_score(self):
         indicators_few = {
             "TA": _indicator("TA", 0.6),

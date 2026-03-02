@@ -61,6 +61,23 @@ class Settings(BaseSettings):
     # Contextual analysis (Stage 3)
     ctx_independent_threshold: int = 3
 
+    # Salami Slicing Detector (Stage 5)
+    ssd_similarity_threshold: float = 0.7
+    ssd_interval_days: int = 30
+
+    # Citation Cannibalism (Stage 5)
+    cc_per_paper_threshold: float = 0.50
+
+    # Authorship Network Anomaly (Stage 5)
+    ana_single_paper_coauthor_threshold: float = 0.5
+
+    # Peer Benchmark (Stage 5)
+    pb_k_neighbors: int = 10
+    pb_min_peers: int = 3
+
+    # Cross-Platform Consistency (Stage 5)
+    cpc_divergence_threshold: float = 0.20
+
     # Scalability
     igraph_node_threshold: int = 50_000
 
@@ -76,4 +93,4 @@ class Settings(BaseSettings):
     default_language: str = "ua"
 
     # Algorithm version
-    algorithm_version: str = "4.0.0"
+    algorithm_version: str = "5.0.0"

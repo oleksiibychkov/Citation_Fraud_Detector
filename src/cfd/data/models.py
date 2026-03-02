@@ -37,6 +37,7 @@ class Publication(BaseModel):
     citation_count: int = 0
     references_list: list[str] = Field(default_factory=list)
     cited_by_works: list[str] = Field(default_factory=list)
+    co_authors: list[dict] = Field(default_factory=list)
     source_api: str
     raw_data: dict | None = None
 

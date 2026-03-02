@@ -193,6 +193,9 @@ class OpenAlexStrategy(DataSourceStrategy):
         # Reconstruct abstract from inverted index
         abstract = self._reconstruct_abstract(work.get("abstract_inverted_index"))
 
+        # Extract co-authors
+        co_authors = self._extract_co_authors(work)
+
         return Publication(
             work_id=work_id,
             doi=work.get("doi"),
@@ -204,9 +207,27 @@ class OpenAlexStrategy(DataSourceStrategy):
             references_list=[
                 ref.replace("https://openalex.org/", "") for ref in (work.get("referenced_works") or [])
             ],
+            co_authors=co_authors,
             source_api="openalex",
             raw_data=work,
         )
+
+    @staticmethod
+    def _extract_co_authors(work: dict) -> list[dict]:
+        """Extract co-author info from OpenAlex authorships field."""
+        co_authors = []
+        for authorship in work.get("authorships", []):
+            author_obj = authorship.get("author", {})
+            author_id = author_obj.get("id", "").replace("https://openalex.org/", "")
+            institutions = authorship.get("institutions", [])
+            institution_name = institutions[0].get("display_name") if institutions else None
+            co_authors.append({
+                "author_id": author_id,
+                "display_name": author_obj.get("display_name", ""),
+                "institution": institution_name,
+                "position": authorship.get("author_position", "middle"),
+            })
+        return co_authors
 
     @staticmethod
     def _reconstruct_abstract(inverted_index: dict | None) -> str | None:

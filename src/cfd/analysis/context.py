@@ -147,7 +147,43 @@ def contextual_check(
             "description": "Papers with suspicious delayed citation patterns",
         })
 
-    # 3h. View count check (stubbed — data not available)
+    # 3h. Salami slicing suspicion
+    ssd = indicator_results.get("SSD")
+    if ssd and ssd.value > 0.3:
+        signals.append({
+            "type": "salami_slicing",
+            "value": ssd.value,
+            "description": "Suspiciously similar publications detected",
+        })
+
+    # 3i. Citation cannibalism
+    cc = indicator_results.get("CC")
+    if cc and cc.value > 0.3:
+        signals.append({
+            "type": "citation_cannibalism",
+            "value": cc.value,
+            "description": "Excessive self-referencing in publication references",
+        })
+
+    # 3j. Authorship network anomaly
+    ana = indicator_results.get("ANA")
+    if ana and ana.value > 0.4:
+        signals.append({
+            "type": "authorship_anomaly",
+            "value": ana.value,
+            "description": "Anomalous co-authorship patterns detected",
+        })
+
+    # 3k. Cross-platform consistency
+    cpc = indicator_results.get("CPC")
+    if cpc and cpc.value > 0.3:
+        signals.append({
+            "type": "cross_platform_inconsistency",
+            "value": cpc.value,
+            "description": "Significant metric divergence across platforms",
+        })
+
+    # 3l. View count check (stubbed — data not available)
     # In a real system, compare citation counts with view/download counts
     # to detect citations without corresponding readership
     view_check = {"status": "unavailable", "reason": "view_data_not_available"}

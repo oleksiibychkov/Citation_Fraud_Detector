@@ -67,5 +67,13 @@
         "dossier": "Author Dossier",
         "compare": "Snapshot Compare",
         "antiranking": "Anti-Ranking"
+    },
+    "indicators_stage5": {
+        "ana": "Authorship Network Anomaly",
+        "pb": "Peer Benchmark",
+        "ssd": "Salami Slicing Detector",
+        "cc": "Citation Cannibalism",
+        "cpc": "Cross-Platform Consistency",
+        "calibration": "Weight Calibration"
     }
 }

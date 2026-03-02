@@ -5,9 +5,14 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
+from cfd.analysis.authorship import compute_ana
 from cfd.analysis.baselines import get_baseline
+from cfd.analysis.cannibalism import compute_cc
 from cfd.analysis.context import contextual_check
+from cfd.analysis.cross_platform import compute_cpc
 from cfd.analysis.eligibility import check_eligibility
+from cfd.analysis.peer_benchmark import compute_pb
+from cfd.analysis.salami import compute_ssd
 from cfd.analysis.temporal import compute_cv, compute_sbd
 from cfd.config.settings import Settings
 from cfd.data.models import AuthorProfile
@@ -68,6 +73,8 @@ class AnalysisPipeline:
         cit_repo: CitationRepository | None = None,
         ind_repo: IndicatorRepository | None = None,
         score_repo: FraudScoreRepository | None = None,
+        peer_repo=None,
+        secondary_strategy: DataSourceStrategy | None = None,
     ):
         self._strategy = strategy
         self._settings = settings
@@ -76,6 +83,8 @@ class AnalysisPipeline:
         self._cit_repo = cit_repo
         self._ind_repo = ind_repo
         self._score_repo = score_repo
+        self._peer_repo = peer_repo
+        self._secondary_strategy = secondary_strategy
 
     def analyze(
         self,
@@ -185,6 +194,49 @@ class AnalysisPipeline:
             indicators.append(compute_sbd(author_data))
         except Exception:
             logger.warning("Temporal indicators (CV/SBD) failed", exc_info=True)
+
+        # Step 5i: Stage 5 indicators (ANA, CC, SSD, PB, CPC)
+        try:
+            indicators.append(compute_ana(author_data))
+        except Exception:
+            logger.warning("ANA computation failed", exc_info=True)
+
+        try:
+            indicators.append(compute_cc(
+                author_data,
+                per_paper_threshold=self._settings.cc_per_paper_threshold,
+            ))
+        except Exception:
+            logger.warning("CC computation failed", exc_info=True)
+
+        try:
+            indicators.append(compute_ssd(
+                author_data,
+                similarity_threshold=self._settings.ssd_similarity_threshold,
+                interval_days=self._settings.ssd_interval_days,
+            ))
+        except Exception:
+            logger.warning("SSD computation failed", exc_info=True)
+
+        try:
+            indicators.append(compute_pb(
+                author_data,
+                peer_repo=self._peer_repo,
+                author_repo=self._author_repo,
+                k=self._settings.pb_k_neighbors,
+                min_peers=self._settings.pb_min_peers,
+            ))
+        except Exception:
+            logger.warning("PB computation failed", exc_info=True)
+
+        try:
+            indicators.append(compute_cpc(
+                author_data,
+                secondary_strategy=self._secondary_strategy,
+                divergence_threshold=self._settings.cpc_divergence_threshold,
+            ))
+        except Exception:
+            logger.warning("CPC computation failed", exc_info=True)
 
         # Step 5h: Contextual Anomaly Analysis (must run after all other indicators)
         try:

@@ -4,7 +4,7 @@ import pytest
 
 from cfd.config.settings import Settings
 from cfd.graph.metrics import IndicatorResult
-from cfd.graph.scoring import _is_triggered, _normalize_indicator, compute_fraud_score
+from cfd.graph.scoring import DEFAULT_WEIGHTS, _is_triggered, _normalize_indicator, compute_fraud_score
 
 
 @pytest.fixture
@@ -66,6 +66,26 @@ class TestNormalizeIndicator:
         ind = IndicatorResult("CTX", 0.5, {})
         assert _normalize_indicator(ind, settings) == 0.5
 
+    def test_ana_passthrough(self, settings):
+        ind = IndicatorResult("ANA", 0.6, {})
+        assert _normalize_indicator(ind, settings) == 0.6
+
+    def test_pb_passthrough(self, settings):
+        ind = IndicatorResult("PB", 0.3, {})
+        assert _normalize_indicator(ind, settings) == 0.3
+
+    def test_ssd_passthrough(self, settings):
+        ind = IndicatorResult("SSD", 0.5, {})
+        assert _normalize_indicator(ind, settings) == 0.5
+
+    def test_cc_passthrough(self, settings):
+        ind = IndicatorResult("CC", 0.7, {})
+        assert _normalize_indicator(ind, settings) == 0.7
+
+    def test_cpc_passthrough(self, settings):
+        ind = IndicatorResult("CPC", 0.4, {})
+        assert _normalize_indicator(ind, settings) == 0.4
+
 
 class TestIsTriggered:
     def test_scr_triggered(self, settings):
@@ -107,6 +127,34 @@ class TestIsTriggered:
     def test_ctx_triggered(self, settings):
         ind = IndicatorResult("CTX", 0.5, {})
         assert _is_triggered(ind, settings) is True
+
+    def test_ana_triggered(self, settings):
+        ind = IndicatorResult("ANA", 0.5, {})
+        assert _is_triggered(ind, settings) is True
+
+    def test_ana_not_triggered(self, settings):
+        ind = IndicatorResult("ANA", 0.3, {})
+        assert _is_triggered(ind, settings) is False
+
+    def test_pb_triggered(self, settings):
+        ind = IndicatorResult("PB", 0.4, {})
+        assert _is_triggered(ind, settings) is True
+
+    def test_ssd_triggered(self, settings):
+        ind = IndicatorResult("SSD", 0.4, {})
+        assert _is_triggered(ind, settings) is True
+
+    def test_cc_triggered(self, settings):
+        ind = IndicatorResult("CC", 0.4, {})
+        assert _is_triggered(ind, settings) is True
+
+    def test_cpc_triggered(self, settings):
+        ind = IndicatorResult("CPC", 0.4, {})
+        assert _is_triggered(ind, settings) is True
+
+    def test_cpc_not_triggered(self, settings):
+        ind = IndicatorResult("CPC", 0.2, {})
+        assert _is_triggered(ind, settings) is False
 
     def test_unknown_type(self, settings):
         ind = IndicatorResult("UNKNOWN", 0.5, {})
@@ -170,3 +218,22 @@ class TestComputeFraudScore:
         assert score == 0.0
         assert level == "normal"
         assert triggered == []
+
+    def test_weights_sum_to_one(self):
+        assert abs(sum(DEFAULT_WEIGHTS.values()) - 1.0) < 1e-10
+
+    def test_weights_count(self):
+        assert len(DEFAULT_WEIGHTS) == 20
+
+    def test_new_indicators_included(self, settings):
+        indicators = [
+            IndicatorResult("ANA", 0.5, {}),
+            IndicatorResult("PB", 0.4, {}),
+            IndicatorResult("SSD", 0.6, {}),
+            IndicatorResult("CC", 0.3, {}),
+            IndicatorResult("CPC", 0.2, {}),
+        ]
+        score, level, triggered = compute_fraud_score(indicators, settings)
+        assert score > 0.0
+        assert "ANA" in triggered
+        assert "SSD" in triggered
