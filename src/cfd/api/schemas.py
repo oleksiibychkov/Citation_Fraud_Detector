@@ -115,15 +115,22 @@ _ALLOWED_SENSITIVITY_KEYS = frozenset({
 
 
 class SensitivityOverridesRequest(BaseModel):
-    overrides: dict = Field(default_factory=dict)
+    overrides: dict[str, float] = Field(default_factory=dict)
 
     @field_validator("overrides")
     @classmethod
-    def validate_keys(cls, v: dict) -> dict:
+    def validate_keys_and_values(cls, v: dict) -> dict:
         bad = set(v) - _ALLOWED_SENSITIVITY_KEYS
         if bad:
             msg = f"Invalid sensitivity keys: {sorted(bad)}"
             raise ValueError(msg)
+        for key, value in v.items():
+            if not isinstance(value, (int, float)):
+                msg = f"Value for '{key}' must be numeric"
+                raise ValueError(msg)
+            if value < 0:
+                msg = f"Value for '{key}' must be non-negative"
+                raise ValueError(msg)
         return v
 
 

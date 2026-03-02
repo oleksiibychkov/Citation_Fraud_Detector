@@ -6,6 +6,8 @@ import streamlit as st
 
 from cfd.visualization.colors import LEVEL_COLORS
 
+VALID_LEVELS = {"normal", "low", "moderate", "high", "critical"}
+
 
 def render():
     """Render the overview / watchlist page."""
@@ -42,9 +44,11 @@ def render():
 
     # Display table
     for entry in filtered:
-        level = entry.get("confidence_level", "normal")
+        level = entry.get("confidence_level", "normal") or "normal"
+        if level not in VALID_LEVELS:
+            level = "normal"
         color = LEVEL_COLORS.get(level, "#999999")
-        score = entry.get("fraud_score", 0)
+        score = entry.get("fraud_score", 0) or 0
 
         col_name, col_score, col_level, col_reason = st.columns([3, 1, 1, 3])
         with col_name:

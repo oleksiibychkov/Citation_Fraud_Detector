@@ -37,7 +37,21 @@ class TestFraudScoreRepository:
         assert repo.get_latest_by_author(999) is None
 
     def test_get_all_ranked(self, mock_client):
-        set_execute_data(mock_client, [{"score": 0.9}, {"score": 0.5}])
+        set_execute_data(mock_client, [
+            {"author_id": 1, "score": 0.9, "calculated_at": "2026-01-02"},
+            {"author_id": 2, "score": 0.5, "calculated_at": "2026-01-01"},
+        ])
         repo = FraudScoreRepository(mock_client)
         result = repo.get_all_ranked(limit=10)
         assert len(result) == 2
+        assert result[0]["score"] == 0.9
+
+    def test_get_all_ranked_deduplicates(self, mock_client):
+        set_execute_data(mock_client, [
+            {"author_id": 1, "score": 0.9, "calculated_at": "2026-01-02"},
+            {"author_id": 1, "score": 0.5, "calculated_at": "2026-01-01"},
+        ])
+        repo = FraudScoreRepository(mock_client)
+        result = repo.get_all_ranked(limit=10)
+        assert len(result) == 1
+        assert result[0]["score"] == 0.9

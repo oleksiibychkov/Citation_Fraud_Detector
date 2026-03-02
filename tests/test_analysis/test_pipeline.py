@@ -116,3 +116,5 @@ class TestAnalysisPipeline:
         assert "SSD" in indicator_types
         assert "PB" in indicator_types
         assert "CPC" in indicator_types
+        assert "JSCR" in indicator_types
+        assert "COERCE" in indicator_types

@@ -28,7 +28,7 @@ class PeerGroupRepository:
             "discipline": discipline,
             "matching_criteria": matching_criteria or {},
         }
-        result = self._client.table(self._table).upsert(record).execute()
+        result = self._client.table(self._table).upsert(record, on_conflict="author_id").execute()
         return result.data[0] if result.data else {}
 
     def get_by_author_id(self, author_id: int) -> dict | None:

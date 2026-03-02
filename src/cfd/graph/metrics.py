@@ -251,7 +251,7 @@ def _extract_counts_by_year(author_data: AuthorData) -> Counter:
             for entry in pub.raw_data.get("counts_by_year", []):
                 year = entry.get("year")
                 cited = entry.get("cited_by_count", 0)
-                if year and cited:
+                if year is not None:
                     yearly[year] += cited
     return yearly
 

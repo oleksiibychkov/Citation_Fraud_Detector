@@ -77,8 +77,8 @@ def compute_pb(
         details={
             "peer_count": len(peers),
             "deviations": {
-                k: {"z_score": round(v["z_score"], 4) if v["z_score"] else None, **v}
-                for k, v in deviations.items()
+                dk: {"z_score": round(dv["z_score"], 4) if dv["z_score"] is not None else None, **dv}
+                for dk, dv in deviations.items()
             },
             "author_metrics": author_metrics,
         },

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import tempfile
 from pathlib import Path
 
@@ -51,10 +52,14 @@ async def batch_analyze(
     if len(validation.entries) > MAX_BATCH_SIZE:
         errors.append(f"Batch truncated to {MAX_BATCH_SIZE} entries (submitted {len(validation.entries)})")
 
+    loop = asyncio.get_event_loop()
     results: list[BatchResultItem] = []
     for entry in entries:
         try:
-            result = pipeline.analyze(entry.surname, scopus_id=entry.scopus_id, orcid=entry.orcid)
+            result = await loop.run_in_executor(
+                None,
+                lambda e=entry: pipeline.analyze(e.surname, scopus_id=e.scopus_id, orcid=e.orcid),
+            )
             results.append(BatchResultItem(
                 surname=entry.surname,
                 status=result.status,

@@ -198,20 +198,25 @@ class TestComputeFraudScore:
         assert level in ("normal", "low", "moderate", "high", "critical")
 
     def test_confidence_levels(self, settings):
-        # Test that different score ranges map to correct levels
-        for score_val, _expected_level in [
+        # Test CONFIDENCE_LEVELS classification directly
+        from cfd.graph.scoring import CONFIDENCE_LEVELS
+
+        test_cases = [
             (0.0, "normal"),
             (0.1, "normal"),
-            (0.3, "low"),
+            (0.2, "low"),
+            (0.35, "low"),
             (0.5, "moderate"),
             (0.7, "high"),
-            (0.9, "critical"),
-        ]:
-            indicators = [IndicatorResult("TA", score_val, {"max_z_score": 0})]
-            score, level, _ = compute_fraud_score(indicators, settings)
-            # We can't assert exact level because normalization affects score,
-            # but we verify the function returns valid levels
-            assert level in ("normal", "low", "moderate", "high", "critical")
+            (0.85, "critical"),
+        ]
+        for score_val, expected_level in test_cases:
+            classified = "normal"
+            for low, high, level in CONFIDENCE_LEVELS:
+                if low <= score_val < high:
+                    classified = level
+                    break
+            assert classified == expected_level, f"score={score_val}: expected {expected_level}, got {classified}"
 
     def test_empty_indicators(self, settings):
         score, level, triggered = compute_fraud_score([], settings)

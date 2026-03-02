@@ -6,6 +6,8 @@ import streamlit as st
 
 from cfd.visualization.colors import LEVEL_COLORS
 
+VALID_LEVELS = {"normal", "low", "moderate", "high", "critical"}
+
 
 def render():
     """Render the anti-ranking page."""
@@ -40,9 +42,11 @@ def render():
     header_cols[6].write("**Publications**")
 
     for i, entry in enumerate(entries, 1):
-        level = entry.get("confidence_level", "normal")
+        level = entry.get("confidence_level", "normal") or "normal"
+        if level not in VALID_LEVELS:
+            level = "normal"
         color = LEVEL_COLORS.get(level, "#999999")
-        score = entry.get("fraud_score", 0)
+        score = entry.get("fraud_score", 0) or 0
 
         cols = st.columns([1, 3, 2, 2, 2, 2, 2])
         cols[0].write(str(i))

@@ -71,23 +71,25 @@ def detect_communities(
     )
 
 
-def community_to_indicator(result: CommunityResult) -> IndicatorResult:
+def community_to_indicator(result: CommunityResult, min_community_size: int = 3) -> IndicatorResult:
     """Convert community detection result to an IndicatorResult for scoring.
 
-    Value is based on the proportion of suspicious communities.
+    Value is based on the proportion of suspicious communities among eligible ones.
     """
-    total = len(result.communities)
     suspicious_count = len(result.suspicious_communities)
 
-    if total == 0:
-        return IndicatorResult("COMMUNITY", 0.0, {"status": "no_communities"})
+    # Count only communities large enough to be evaluated
+    eligible = sum(1 for m in result.communities.values() if len(m) >= min_community_size)
 
-    value = suspicious_count / total
+    if eligible == 0:
+        return IndicatorResult("COMMUNITY", 0.0, {"status": "no_eligible_communities"})
+
+    value = suspicious_count / eligible
     return IndicatorResult(
         "COMMUNITY",
         round(min(value, 1.0), 6),
         {
-            "total_communities": total,
+            "eligible_communities": eligible,
             "suspicious_count": suspicious_count,
             "modularity": round(result.modularity, 4),
         },

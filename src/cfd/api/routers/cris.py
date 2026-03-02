@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -29,7 +30,7 @@ class CRISAuthorPayload(BaseModel):
     orcid: str | None = None
     scopus_id: str | None = None
     institution: str | None = None
-    action: str = "add_to_watchlist"  # add_to_watchlist | queue_analysis
+    action: Literal["add_to_watchlist", "queue_analysis"] = "add_to_watchlist"
 
 
 class PureWebhookBody(BaseModel):

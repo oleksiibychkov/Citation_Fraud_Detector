@@ -48,12 +48,22 @@ class FraudScoreRepository:
         return result.data[0] if result.data else None
 
     def get_all_ranked(self, limit: int = 100) -> list[dict]:
-        """Get all fraud scores ranked by score descending (anti-rating)."""
+        """Get all fraud scores ranked by score descending (anti-rating).
+
+        Deduplicates by author_id, keeping only the latest score per author.
+        """
         result = (
             self._client.table(self._table)
             .select("*")
-            .order("score", desc=True)
-            .limit(limit)
+            .order("calculated_at", desc=True)
             .execute()
         )
-        return result.data or []
+        seen: set[int] = set()
+        unique: list[dict] = []
+        for row in result.data or []:
+            aid = row.get("author_id")
+            if aid not in seen:
+                seen.add(aid)
+                unique.append(row)
+        unique.sort(key=lambda r: r.get("score", 0), reverse=True)
+        return unique[:limit]

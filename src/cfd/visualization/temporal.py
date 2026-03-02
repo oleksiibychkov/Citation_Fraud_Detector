@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
+from datetime import datetime
 
 import numpy as np
 import plotly.graph_objects as go
@@ -176,7 +177,7 @@ def build_baseline_overlay(
     paper_ages: dict[int, list[int]] = {}  # age_years → [citation_counts]
     current_year = max(
         (p.publication_date.year for p in author_data.publications if p.publication_date),
-        default=2025,
+        default=datetime.now().year,
     )
 
     for pub in author_data.publications:

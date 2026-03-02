@@ -6,6 +6,8 @@ import streamlit as st
 
 from cfd.visualization.colors import LEVEL_COLORS
 
+VALID_LEVELS = {"normal", "low", "moderate", "high", "critical"}
+
 
 def render():
     """Render the author dossier page."""
@@ -52,7 +54,9 @@ def render():
 
     # Section 2: Fraud Score
     st.subheader("Fraud Score")
-    level = result.confidence_level
+    level = result.confidence_level or "normal"
+    if level not in VALID_LEVELS:
+        level = "normal"
     color = LEVEL_COLORS.get(level, "#999999")
     st.markdown(
         f"<h2 style='color:{color}'>{result.fraud_score:.4f} — {level.upper()}</h2>",

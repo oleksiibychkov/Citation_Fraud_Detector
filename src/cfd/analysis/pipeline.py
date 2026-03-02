@@ -154,7 +154,9 @@ class AnalysisPipeline:
                     density_ratio_threshold=self._settings.community_density_ratio_threshold,
                     min_community_size=self._settings.min_community_size,
                 )
-                indicators.append(community_to_indicator(community_result))
+                indicators.append(community_to_indicator(
+                    community_result, min_community_size=self._settings.min_community_size,
+                ))
             except Exception:
                 logger.warning("Community detection failed", exc_info=True)
 

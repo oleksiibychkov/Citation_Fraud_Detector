@@ -64,6 +64,10 @@ def render():
     if prev_algo != curr_algo:
         st.warning(f"Algorithm version changed: {prev_algo} → {curr_algo}")
 
+    from cfd.dashboard.disclaimer import render_disclaimer
+
+    render_disclaimer()
+
 
 def _load_snapshots(author_id: int, limit: int) -> list[dict]:
     """Load snapshots from database."""
@@ -107,7 +111,3 @@ def _render_timeline(snapshots: list[dict]):
         st.plotly_chart(fig, use_container_width=True)
     except ImportError:
         st.warning("Plotly required for timeline chart.")
-
-    from cfd.dashboard.disclaimer import render_disclaimer
-
-    render_disclaimer()

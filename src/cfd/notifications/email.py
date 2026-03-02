@@ -42,8 +42,12 @@ def send_score_change_email(
     msg["To"] = to_address
 
     try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
-            if smtp_port == 587:
+        if smtp_port == 465:
+            ctx = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
+        else:
+            ctx = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
+        with ctx as server:
+            if smtp_port not in (25, 465):
                 server.starttls()
             if smtp_user and smtp_password:
                 server.login(smtp_user, smtp_password)
