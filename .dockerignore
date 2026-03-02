@@ -1,0 +1,17 @@
+.git
+.github
+__pycache__
+*.pyc
+.env*
+tests/
+docs/
+.ruff_cache
+.pytest_cache
+*.egg-info
+dist/
+build/
+.venv/
+.claude/
+node_modules/
+*.md
+!README.md

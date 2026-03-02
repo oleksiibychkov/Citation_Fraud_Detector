@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,api]"
+          pip install -e ".[dev,api,igraph]"
 
       - name: Lint with ruff
         run: ruff check src/ tests/
@@ -33,4 +33,4 @@ jobs:
         env:
           CFD_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           CFD_SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: pytest --cov=cfd --cov-report=term-missing
+        run: pytest --cov=cfd --cov-report=term-missing --cov-fail-under=80

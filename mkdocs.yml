@@ -1,0 +1,36 @@
+site_name: Citation Fraud Detector
+site_description: Multi-level system for detecting anomalous citation patterns
+repo_url: https://github.com/your-org/citation-fraud-detector
+repo_name: citation-fraud-detector
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage: usage.md
+  - API Reference: api.md
+  - Indicators: indicators.md
+  - Architecture: architecture.md
+  - Deployment: deployment.md
+  - Contributing: contributing.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true

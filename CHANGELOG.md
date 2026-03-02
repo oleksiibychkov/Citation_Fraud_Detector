@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.7.0 — Hardening, Coverage & Documentation
+
+- **Test coverage raised to ≥80%** (from 67%), 668+ tests
+- **DB repository tests**: 64 new tests covering all 16 Supabase repositories
+- **Data layer tests**: 36 new tests for OpenAlex, Scopus strategies and HTTP client
+- **Neo4j query tests**: 9 new tests with mocked driver/session
+- **API cache tests**: 10 new tests for cache get/set/invalidate/cleanup
+- **igraph engine tests**: 20 new tests (skipped when igraph not installed)
+- **MkDocs documentation site**: 8 pages (index, installation, usage, API, indicators, architecture, deployment, contributing)
+- **Docker hardening**: `.dockerignore` for optimized build context
+- **Backup scripts**: `scripts/backup_postgres.sh`, `scripts/backup_neo4j.sh`
+- **CI**: `--cov-fail-under=80` coverage threshold, `[dev,api,igraph]` install
+- **Updated README** with API, architecture, deployment, and documentation sections
+
 ## v0.6.0 — REST API, Deployment & Finalization
 
 - **FastAPI REST API** with `create_app()` factory pattern, OpenAPI docs at `/api/docs`
