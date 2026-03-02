@@ -92,7 +92,8 @@ class CachedHttpClient:
                     "response_data": data,
                     "source_api": source_api,
                     "expires_at": expires.isoformat(),
-                }
+                },
+                on_conflict="cache_key",
             ).execute()
         except Exception:
             logger.debug("Cache write failed", exc_info=True)

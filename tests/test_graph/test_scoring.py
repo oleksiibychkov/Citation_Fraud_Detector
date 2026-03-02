@@ -92,6 +92,10 @@ class TestIsTriggered:
         ind = IndicatorResult("SCR", settings.scr_warn_threshold + 0.01, {})
         assert _is_triggered(ind, settings) is True
 
+    def test_scr_triggered_at_boundary(self, settings):
+        ind = IndicatorResult("SCR", settings.scr_warn_threshold, {})
+        assert _is_triggered(ind, settings) is True
+
     def test_scr_not_triggered(self, settings):
         ind = IndicatorResult("SCR", settings.scr_warn_threshold - 0.01, {})
         assert _is_triggered(ind, settings) is False
@@ -106,6 +110,10 @@ class TestIsTriggered:
 
     def test_ta_triggered(self, settings):
         ind = IndicatorResult("TA", 0.5, {"max_z_score": settings.ta_z_threshold + 0.1})
+        assert _is_triggered(ind, settings) is True
+
+    def test_ta_triggered_at_boundary(self, settings):
+        ind = IndicatorResult("TA", 0.5, {"max_z_score": settings.ta_z_threshold})
         assert _is_triggered(ind, settings) is True
 
     def test_ta_not_triggered(self, settings):

@@ -119,7 +119,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(CFDError)
     async def _cfd_error(_request: Request, exc: CFDError):
-        return JSONResponse(status_code=500, content={"detail": str(exc)})
+        logger.exception("Unhandled CFDError")
+        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
     # Register routers
     from cfd.api.routers.health import router as health_router

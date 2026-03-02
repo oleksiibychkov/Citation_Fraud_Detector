@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import tempfile
 from pathlib import Path
 
@@ -12,6 +13,8 @@ from cfd.api.auth import APIKeyInfo, require_role
 from cfd.api.dependencies import get_pipeline, get_repos
 from cfd.api.schemas import BatchResponse, BatchResultItem
 from cfd.exceptions import CFDError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/batch", tags=["Batch"])
 
@@ -73,6 +76,7 @@ async def batch_analyze(
                 error=str(e),
             ))
         except Exception:
+            logger.exception("Batch analysis failed for %s", entry.surname)
             results.append(BatchResultItem(
                 surname=entry.surname,
                 status="error",

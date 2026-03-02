@@ -74,4 +74,5 @@ def test_generic_cfd_error_returns_500():
     client = TestClient(app, raise_server_exceptions=False)
     resp = client.get("/test-exc")
     assert resp.status_code == 500
-    assert "Something broke" in resp.json()["detail"]
+    # Sanitized — internal error details are not exposed to client
+    assert resp.json()["detail"] == "Internal server error"

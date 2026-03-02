@@ -174,7 +174,7 @@ def reanalyze(ctx, reanalyze_all):
 
         for entry in entries:
             author_id = entry.get("author_id")
-            author = author_repo.get_by_id(author_id) if author_id else None
+            author = author_repo.get_by_id(author_id) if author_id is not None else None
             if not author:
                 console.print(f"  [dim]Author {author_id}: not found in DB — skipping[/dim]")
                 continue

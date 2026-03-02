@@ -88,8 +88,8 @@ def _load_watchlist() -> list[dict]:
         enriched = []
         for entry in raw_entries:
             author_id = entry.get("author_id")
-            author = author_repo.get_by_id(author_id) if author_id else None
-            latest_score = score_repo.get_latest_by_author(author_id) if author_id else None
+            author = author_repo.get_by_id(author_id) if author_id is not None else None
+            latest_score = score_repo.get_latest_by_author(author_id) if author_id is not None else None
 
             enriched.append({
                 "author_name": (author or {}).get("full_name") or (author or {}).get("surname", "Unknown"),

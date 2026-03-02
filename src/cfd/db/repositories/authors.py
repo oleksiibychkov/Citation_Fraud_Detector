@@ -41,7 +41,12 @@ class AuthorRepository:
         elif profile.orcid:
             result = self._client.table(self._table).upsert(data, on_conflict="orcid").execute()
         elif profile.openalex_id:
-            result = self._client.table(self._table).upsert(data, on_conflict="openalex_id").execute()
+            # openalex_id has INDEX but not UNIQUE — select then update/insert
+            existing = self.get_by_openalex_id(profile.openalex_id)
+            if existing and existing.get("id"):
+                result = self._client.table(self._table).update(data).eq("id", existing["id"]).execute()
+            else:
+                result = self._client.table(self._table).insert(data).execute()
         else:
             result = self._client.table(self._table).insert(data).execute()
 

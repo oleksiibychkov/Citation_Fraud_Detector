@@ -96,18 +96,18 @@ def _is_triggered(indicator: IndicatorResult, settings: Settings) -> bool:
     value = indicator.value
 
     if itype == "SCR":
-        return value > settings.scr_warn_threshold
+        return value >= settings.scr_warn_threshold
     if itype == "MCR":
         return value > settings.mcr_threshold
     if itype == "CB":
         return value > settings.cb_threshold
     if itype == "TA":
-        # Triggered if max z-score > threshold
+        # Triggered if max z-score >= threshold
         max_z = indicator.details.get("max_z_score", 0)
-        return max_z > settings.ta_z_threshold
+        return max_z >= settings.ta_z_threshold
     if itype == "HTA":
         max_z = indicator.details.get("max_z_score", 0)
-        return max_z > settings.ta_z_threshold
+        return max_z >= settings.ta_z_threshold
     if itype == "RLA":
         return value > settings.rla_threshold
     if itype == "GIC":

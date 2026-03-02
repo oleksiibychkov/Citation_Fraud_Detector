@@ -33,12 +33,20 @@ class TestAuthorRepository:
         result = repo.upsert(_profile(scopus_id=None))
         assert result["id"] == 2
 
-    def test_upsert_with_openalex_id_only(self, mock_client):
+    def test_upsert_with_openalex_id_existing(self, mock_client):
         set_execute_data(mock_client, [{"id": 3}])
         repo = AuthorRepository(mock_client)
         result = repo.upsert(_profile(scopus_id=None, orcid=None))
         assert result["id"] == 3
-        mock_client.table.return_value.upsert.assert_called()
+        # openalex_id has no UNIQUE constraint — uses select-then-update
+        mock_client.table.return_value.update.assert_called()
+
+    def test_upsert_with_openalex_id_new(self, mock_client):
+        set_execute_data(mock_client, [])
+        repo = AuthorRepository(mock_client)
+        repo.upsert(_profile(scopus_id=None, orcid=None))
+        # No existing record → insert
+        mock_client.table.return_value.insert.assert_called()
 
     def test_upsert_insert_fallback(self, mock_client):
         set_execute_data(mock_client, [{"id": 4}])
