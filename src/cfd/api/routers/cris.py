@@ -121,7 +121,9 @@ def _process_cris_author(
 
     if existing:
         author_id = existing.get("id")
-        if author.action == "add_to_watchlist":
+        if author_id is None:
+            result["status"] = "invalid_author_record"
+        elif author.action == "add_to_watchlist":
             repos["watchlist"].add(author_id, reason=f"CRIS integration ({source})")
             result["status"] = "added_to_watchlist"
             result["author_id"] = author_id
