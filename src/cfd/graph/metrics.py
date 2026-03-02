@@ -226,7 +226,8 @@ def compute_ta(author_data: AuthorData, z_threshold: float = 3.0) -> IndicatorRe
     normalized = min(max(pub_adjusted / (z_threshold * 2), 0.0), 1.0)
 
     details: dict = {
-        "max_z_score": round(max_z, 3),
+        "max_z_score": round(pub_adjusted, 3),
+        "raw_max_z": round(max_z, 3),
         "spike_year": max_z_year,
         "yearly_counts": {str(y): int(yearly_counts[y]) for y in years},
         "mean": round(mean, 2),
@@ -307,21 +308,24 @@ def compute_hta(author_data: AuthorData) -> IndicatorResult:
                 corr = float(np.corrcoef(cum_cit, cum_pub)[0, 1])
                 h_n_correlation = round(corr, 4)
                 # Low correlation with high growth = suspicious
-                if corr < 0.5 and max_z > 3.0:
-                    max_z *= 1.2
+                effective_z = max_z * 1.2 if corr < 0.5 and max_z > 3.0 else max_z
+            else:
+                effective_z = max_z
+        else:
+            effective_z = max_z
+    else:
+        effective_z = max_z
 
-    # Average annual growth rate
-    avg_annual_growth = mean_growth
-
-    # Normalize to [0, 1]
-    normalized = min(max(max_z / 6.0, 0.0), 1.0)
+    # Normalize to [0, 1] — consistent with TA (z_threshold * 2)
+    z_threshold = 3.0
+    normalized = min(max(effective_z / (z_threshold * 2), 0.0), 1.0)
 
     details: dict = {
         "mean_growth_rate": round(mean_growth, 3),
         "max_growth_rate": round(max_growth, 3),
-        "max_z_score": round(max_z, 3),
+        "max_z_score": round(effective_z, 3),
+        "raw_max_z": round(max_z, 3),
         "years_analyzed": len(years),
-        "avg_annual_growth_rate": round(avg_annual_growth, 4),
     }
     if h_n_correlation is not None:
         details["h_n_correlation"] = h_n_correlation

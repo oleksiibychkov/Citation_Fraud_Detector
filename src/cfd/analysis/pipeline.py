@@ -52,7 +52,7 @@ def _aggregate_centrality(engine, work_ids: set[str], metric: str) -> IndicatorR
         "PAGERANK": engine.pagerank,
     }
     fn = method_map[metric]
-    values = [v for wid in work_ids if (v := fn(wid)) > 0]
+    values = [v for wid in work_ids if (v := fn(wid)) is not None]
     avg = sum(values) / len(values) if values else 0.0
     return IndicatorResult(
         metric, avg,
@@ -194,7 +194,7 @@ class AnalysisPipeline:
         theorem_results: list[TheoremResult] = []
         if engine is not None:
             try:
-                subset = set(citation_graph.nodes) if citation_graph is not None else set()
+                subset = author_work_ids & set(citation_graph.nodes) if citation_graph is not None else set()
                 # μ_s = author's SCR value
                 scr_ind = next((i for i in indicators if i.indicator_type == "SCR"), None)
                 mu_s = scr_ind.value if scr_ind else 0.0

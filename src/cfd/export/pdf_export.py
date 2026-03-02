@@ -169,7 +169,7 @@ def export_to_pdf(
     if result.warnings:
         elements.append(Paragraph(translations["warnings"], heading_style))
         for w in result.warnings:
-            elements.append(Paragraph(f"⚠ {w}", normal_style))
+            elements.append(Paragraph(f"[!] {w}", normal_style))
         elements.append(Spacer(1, 5 * mm))
 
     # Disclaimer
@@ -264,20 +264,18 @@ def export_antiranking_pdf(
 def _register_unicode_font():
     """Register a Unicode font for non-Latin characters."""
     try:
-        import shutil
-
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
-        font_path = shutil.which("DejaVuSans.ttf")
-        if not font_path:
-            # Common locations
-            for candidate in [
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                "C:/Windows/Fonts/arial.ttf",
-            ]:
-                if Path(candidate).exists():
-                    font_path = candidate
-                    break
+        font_path = None
+        # Common font locations by OS
+        for candidate in [
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            "C:/Windows/Fonts/arial.ttf",
+        ]:
+            if Path(candidate).exists():
+                font_path = candidate
+                break
 
         if font_path:
             pdfmetrics.registerFont(TTFont("DejaVuSans", font_path))
