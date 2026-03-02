@@ -123,17 +123,17 @@ class TestWebhookSSRFProtection:
 
     def test_private_10_blocked(self):
         import pytest
-        with pytest.raises(ValueError, match="private"):
+        with pytest.raises(ValueError, match="private|non-public"):
             _validate_webhook_url("http://10.0.0.1/hook")
 
     def test_private_192_168_blocked(self):
         import pytest
-        with pytest.raises(ValueError, match="private"):
+        with pytest.raises(ValueError, match="private|non-public"):
             _validate_webhook_url("http://192.168.1.1/hook")
 
     def test_private_172_16_blocked(self):
         import pytest
-        with pytest.raises(ValueError, match="private"):
+        with pytest.raises(ValueError, match="private|non-public"):
             _validate_webhook_url("http://172.16.0.1/hook")
 
     def test_metadata_endpoint_blocked(self):

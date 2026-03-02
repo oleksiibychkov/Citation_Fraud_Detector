@@ -21,6 +21,8 @@ _BLOCKED_HOSTS = frozenset({
 
 def _validate_webhook_url(url: str) -> None:
     """Validate webhook URL to prevent SSRF attacks."""
+    import ipaddress
+
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise ValueError(f"Webhook URL must use http(s), got {parsed.scheme!r}")
@@ -29,15 +31,23 @@ def _validate_webhook_url(url: str) -> None:
         raise ValueError("Webhook URL has no hostname")
     if hostname in _BLOCKED_HOSTS:
         raise ValueError(f"Webhook URL hostname {hostname!r} is blocked")
-    # Block common private IP ranges
-    if hostname.startswith("10.") or hostname.startswith("192.168."):
-        raise ValueError(f"Webhook URL points to private IP: {hostname}")
-    if hostname.startswith("172."):
-        parts = hostname.split(".")
-        if len(parts) >= 2 and parts[1].isdigit():
-            second_octet = int(parts[1])
-            if 16 <= second_octet <= 31:
-                raise ValueError(f"Webhook URL points to private IP: {hostname}")
+    # Block private/loopback IPs (including IPv4-mapped IPv6 like ::ffff:127.0.0.1)
+    try:
+        ip = ipaddress.ip_address(hostname)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise ValueError(f"Webhook URL points to non-public IP: {hostname}")
+    except ValueError as e:
+        if "non-public" in str(e):
+            raise
+        # Not an IP address — check hostname patterns
+        if hostname.startswith("10.") or hostname.startswith("192.168."):
+            raise ValueError(f"Webhook URL points to private IP: {hostname}") from None
+        if hostname.startswith("172."):
+            parts = hostname.split(".")
+            if len(parts) >= 2 and parts[1].isdigit():
+                second_octet = int(parts[1])
+                if 16 <= second_octet <= 31:
+                    raise ValueError(f"Webhook URL points to private IP: {hostname}") from None
 
 
 def send_score_change_webhook(

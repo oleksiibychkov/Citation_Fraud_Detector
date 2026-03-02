@@ -1,5 +1,6 @@
 """Application configuration via pydantic-settings."""
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -112,3 +113,11 @@ class Settings(BaseSettings):
 
     # Algorithm version
     algorithm_version: str = "5.0.0"
+
+    @model_validator(mode="after")
+    def _validate_thresholds(self) -> "Settings":
+        if self.scr_high_threshold <= self.scr_warn_threshold:
+            raise ValueError("scr_high_threshold must be > scr_warn_threshold")
+        if self.ctx_independent_threshold < 1:
+            raise ValueError("ctx_independent_threshold must be >= 1")
+        return self

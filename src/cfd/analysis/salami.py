@@ -82,6 +82,9 @@ def _find_similar_pairs(
     texts = [pub.abstract for _, pub in with_abstract]
     sim_matrix = embedding_strategy.pairwise_cosine_similarity(texts)
 
+    if sim_matrix is None or sim_matrix.shape[0] != len(texts):
+        return []
+
     pairs = []
     for i in range(len(with_abstract)):
         for j in range(i + 1, len(with_abstract)):

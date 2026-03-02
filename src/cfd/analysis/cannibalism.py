@@ -21,7 +21,7 @@ def compute_cc(
 
     Returns IndicatorResult("CC", value, details).
     """
-    author_work_ids = {pub.work_id for pub in author_data.publications}
+    author_work_ids = {pub.work_id for pub in author_data.publications if pub.work_id}
 
     per_paper = []
     flagged = 0
