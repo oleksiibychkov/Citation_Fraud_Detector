@@ -167,7 +167,7 @@ def reanalyze(ctx, reanalyze_all):
             return
 
         console.print(f"Re-analyzing {len(entries)} watchlist authors...")
-        strategy = _build_strategy("openalex", settings)
+        strategy = _build_strategy("auto", settings)
 
         from cfd.analysis.pipeline import AnalysisPipeline
         from cfd.notifications.dispatcher import dispatch_score_change
@@ -247,6 +247,10 @@ def set_sensitivity(ctx, author_id, overrides):
         overrides_dict = json.loads(overrides)
     except json.JSONDecodeError as e:
         console.print(f"[red]Invalid JSON: {e}[/red]")
+        return
+
+    if not isinstance(overrides_dict, dict):
+        console.print("[red]Overrides must be a JSON object (dict), not a list or scalar[/red]")
         return
 
     try:

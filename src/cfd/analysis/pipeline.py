@@ -268,8 +268,14 @@ class AnalysisPipeline:
         except Exception:
             logger.warning("Contextual analysis (CTX) failed", exc_info=True)
 
-        # Step 6: Compute fraud score
-        score, confidence, triggered = compute_fraud_score(indicators, self._settings)
+        # Step 6: Compute fraud score (apply sensitivity overrides if provided)
+        effective_settings = self._settings
+        if sensitivity_overrides:
+            try:
+                effective_settings = self._settings.model_copy(update=sensitivity_overrides)
+            except Exception:
+                logger.warning("Invalid sensitivity overrides — using defaults", exc_info=True)
+        score, confidence, triggered = compute_fraud_score(indicators, effective_settings)
 
         # Step 7: Persist results
         if author_id:

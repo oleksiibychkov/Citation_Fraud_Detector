@@ -52,10 +52,14 @@ def should_skip_analysis(
     if stored.get("is_new", True):
         return False, {"reason": "new_author"}
 
+    # If API returned None for counts, we can't compare — always re-analyze
+    if current_publication_count is None or current_citation_count is None:
+        return False, {"reason": "unknown_counts"}
+
     stored_pubs = stored.get("stored_publication_count", 0) or 0
     stored_cits = stored.get("stored_citation_count", 0) or 0
-    current_pubs = current_publication_count or 0
-    current_cits = current_citation_count or 0
+    current_pubs = current_publication_count
+    current_cits = current_citation_count
 
     pub_delta = current_pubs - stored_pubs
     cit_delta = current_cits - stored_cits

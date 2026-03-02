@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from cfd import __version__
 from cfd.api.middleware import I18nMiddleware
@@ -65,14 +66,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     app.state.settings = s
-    app.state.limiter = limiter
 
-    # CORS
+    # CORS (credentials only allowed with explicit origins, not wildcard)
     origins = [o.strip() for o in s.api_cors_origins.split(",") if o.strip()]
+    allow_credentials = origins != ["*"]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_credentials=True,
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -80,8 +81,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # I18n middleware
     app.add_middleware(I18nMiddleware)
 
-    # Rate limiter
+    # Rate limiter middleware
     app.state.limiter = limiter
+    app.add_middleware(SlowAPIMiddleware)
 
     # Exception handlers
     @app.exception_handler(AuthorNotFoundError)

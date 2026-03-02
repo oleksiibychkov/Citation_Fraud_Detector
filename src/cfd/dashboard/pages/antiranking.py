@@ -70,7 +70,7 @@ def _load_ranking() -> list[dict]:
 
         client = get_supabase_client(settings)
         repo = FraudScoreRepository(client)
-        return repo.get_all_latest()
+        return repo.get_all_ranked()
     except Exception:
         return []
 

@@ -45,10 +45,10 @@ def render():
     st.subheader("Author Profile")
     profile = result.author_profile
     info_cols = st.columns(4)
-    info_cols[0].metric("Name", profile.get("name", author_name))
-    info_cols[1].metric("h-index", profile.get("h_index", "—"))
-    info_cols[2].metric("Publications", profile.get("publication_count", "—"))
-    info_cols[3].metric("Citations", profile.get("citation_count", "—"))
+    info_cols[0].metric("Name", profile.full_name or author_name)
+    info_cols[1].metric("h-index", profile.h_index if profile.h_index is not None else "—")
+    info_cols[2].metric("Publications", profile.publication_count if profile.publication_count is not None else "—")
+    info_cols[3].metric("Citations", profile.citation_count if profile.citation_count is not None else "—")
 
     # Section 2: Fraud Score
     st.subheader("Fraud Score")
@@ -62,9 +62,9 @@ def render():
     # Section 3: Indicators
     st.subheader("Indicators")
     for ind in result.indicators:
-        name = ind.get("name", ind.get("indicator", "?"))
-        value = ind.get("normalized_value", ind.get("value", 0))
-        triggered = ind.get("triggered", False)
+        name = ind.indicator_type
+        value = ind.value
+        triggered = name in result.triggered_indicators
         icon = "\u26a0\ufe0f" if triggered else "\u2705"
         st.write(f"{icon} **{name}**: {value:.4f}")
 

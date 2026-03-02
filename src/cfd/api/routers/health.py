@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 from cfd import __version__
 
@@ -20,9 +21,9 @@ async def ready(request: Request):
     """Readiness check — verifies DB connectivity."""
     supabase = getattr(request.app.state, "supabase", None)
     if supabase is None:
-        return {"status": "degraded", "database": "unavailable"}
+        return JSONResponse(status_code=503, content={"status": "degraded", "database": "unavailable"})
     try:
         supabase.table("authors").select("id").limit(1).execute()
         return {"status": "ok", "database": "connected"}
     except Exception:
-        return {"status": "degraded", "database": "error"}
+        return JSONResponse(status_code=503, content={"status": "degraded", "database": "error"})

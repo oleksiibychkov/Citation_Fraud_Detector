@@ -25,7 +25,7 @@ def test_ready_no_db():
     app = create_app(Settings(supabase_url="", supabase_key=""))
     client = TestClient(app)
     resp = client.get("/ready")
-    assert resp.status_code == 200
+    assert resp.status_code == 503
     assert resp.json()["status"] == "degraded"
 
 

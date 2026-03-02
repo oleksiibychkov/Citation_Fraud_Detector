@@ -95,11 +95,12 @@ class TestShouldSkipAnalysis:
         assert skip is False
         assert delta["citation_delta"] == 15
 
-    def test_none_counts_treated_as_zero(self):
+    def test_none_counts_force_reanalysis(self):
         stored = {
             "is_new": False,
             "stored_publication_count": 0,
             "stored_citation_count": 0,
         }
         skip, delta = should_skip_analysis(stored, None, None)
-        assert skip is True
+        assert skip is False
+        assert delta["reason"] == "unknown_counts"

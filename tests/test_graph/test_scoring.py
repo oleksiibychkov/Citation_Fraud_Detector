@@ -223,7 +223,7 @@ class TestComputeFraudScore:
         assert abs(sum(DEFAULT_WEIGHTS.values()) - 1.0) < 1e-10
 
     def test_weights_count(self):
-        assert len(DEFAULT_WEIGHTS) == 20
+        assert len(DEFAULT_WEIGHTS) == 22
 
     def test_new_indicators_included(self, settings):
         indicators = [

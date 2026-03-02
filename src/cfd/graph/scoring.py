@@ -5,21 +5,21 @@ from __future__ import annotations
 from cfd.config.settings import Settings
 from cfd.graph.metrics import IndicatorResult
 
-# Full weights for 20 indicators (backward-compatible: score = weighted avg of available)
+# Full weights for 22 indicators (backward-compatible: score = weighted avg of available)
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "SCR": 0.08,
-    "MCR": 0.10,
-    "CB": 0.06,
+    "SCR": 0.07,
+    "MCR": 0.09,
+    "CB": 0.05,
     "TA": 0.08,
-    "HTA": 0.06,
-    "RLA": 0.05,
-    "GIC": 0.05,
+    "HTA": 0.05,
+    "RLA": 0.04,
+    "GIC": 0.04,
     "EIGEN": 0.03,
     "BETWEENNESS": 0.03,
-    "PAGERANK": 0.05,
+    "PAGERANK": 0.04,
     "COMMUNITY": 0.03,
     "CLIQUE": 0.03,
-    "CV": 0.06,
+    "CV": 0.05,
     "SBD": 0.04,
     "CTX": 0.04,
     "ANA": 0.05,
@@ -27,6 +27,8 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "SSD": 0.05,
     "CC": 0.04,
     "CPC": 0.03,
+    "JSCR": 0.04,
+    "COERCE": 0.04,
 }
 
 CONFIDENCE_LEVELS: list[tuple[float, float, str]] = [
@@ -104,7 +106,7 @@ def _normalize_indicator(indicator: IndicatorResult, settings: Settings) -> floa
             return 1.0
         return value / (settings.pagerank_threshold * 2)
 
-    # TA, HTA, COMMUNITY, CLIQUE, CV, SBD, CTX, ANA, PB, SSD, CC, CPC are already normalized to [0, 1]
+    # TA, HTA, COMMUNITY, CLIQUE, CV, SBD, CTX, ANA, PB, SSD, CC, CPC, JSCR, COERCE are already [0, 1]
     return min(max(value, 0.0), 1.0)
 
 
@@ -155,6 +157,10 @@ def _is_triggered(indicator: IndicatorResult, settings: Settings) -> bool:
     if itype == "CC":
         return value > 0.3
     if itype == "CPC":
+        return value > 0.3
+    if itype == "JSCR":
+        return value > 0.3
+    if itype == "COERCE":
         return value > 0.3
 
     return False

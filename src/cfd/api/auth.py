@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import hmac
 import logging
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from fastapi import Depends, Header, HTTPException, Request, status
 
@@ -57,7 +59,7 @@ async def get_api_key(
                 # Update last_used_at
                 with contextlib.suppress(Exception):
                     supabase.table("api_keys").update(
-                        {"last_used_at": "now()"}
+                        {"last_used_at": datetime.now(UTC).isoformat()}
                     ).eq("id", row["id"]).execute()
                 return APIKeyInfo(
                     key_id=row["id"],
@@ -74,7 +76,7 @@ async def get_api_key(
     settings: Settings = getattr(request.app.state, "settings", None) or Settings()
     if settings.api_keys:
         env_keys = [k.strip() for k in settings.api_keys.split(",") if k.strip()]
-        if x_api_key in env_keys:
+        if any(hmac.compare_digest(x_api_key, k) for k in env_keys):
             return APIKeyInfo(key_id=None, name="env_key", role="admin", rate_limit_per_minute=120)
 
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
