@@ -152,6 +152,24 @@ class TestComputeCV:
         result = compute_cv(ad, _make_baseline(), current_year=2025)
         assert 0.0 <= result.value <= 1.0
 
+    def test_cv_threshold_param_lowers_score(self):
+        """Higher cv_threshold → lower normalized value."""
+        pubs = [_make_publication(f"W{i}", 2020, 100) for i in range(5)]
+        ad = AuthorData(profile=_make_profile(), publications=pubs, citations=[])
+        baseline = _make_baseline()
+        r_default = compute_cv(ad, baseline, current_year=2025, cv_threshold=5.0)
+        r_lenient = compute_cv(ad, baseline, current_year=2025, cv_threshold=20.0)
+        assert r_lenient.value <= r_default.value
+
+    def test_cv_threshold_param_raises_score(self):
+        """Lower cv_threshold → higher normalized value."""
+        pubs = [_make_publication(f"W{i}", 2020, 50) for i in range(5)]
+        ad = AuthorData(profile=_make_profile(), publications=pubs, citations=[])
+        baseline = _make_baseline()
+        r_default = compute_cv(ad, baseline, current_year=2025, cv_threshold=5.0)
+        r_strict = compute_cv(ad, baseline, current_year=2025, cv_threshold=2.0)
+        assert r_strict.value >= r_default.value
+
 
 class TestComputeBeautyCoefficient:
     def test_no_data(self):
@@ -266,6 +284,44 @@ class TestComputeSBD:
         assert result.indicator_type == "SBD"
         # Should use timestamps to build yearly data
         assert result.details.get("status") != "N/A" or result.value >= 0
+
+    def test_sbd_beauty_threshold_param(self):
+        """Higher beauty_threshold → fewer papers exceed it."""
+        pubs = [
+            _make_publication("W1", 2005, 200, raw_data={
+                "counts_by_year": [
+                    {"year": 2005, "cited_by_count": 0},
+                    {"year": 2006, "cited_by_count": 0},
+                    {"year": 2007, "cited_by_count": 0},
+                    {"year": 2010, "cited_by_count": 100},
+                    {"year": 2011, "cited_by_count": 50},
+                ],
+            }),
+        ]
+        ad = AuthorData(profile=_make_profile(), publications=pubs, citations=[])
+        r_default = compute_sbd(ad, beauty_threshold=100.0)
+        r_lenient = compute_sbd(ad, beauty_threshold=99999.0)
+        # With very high beauty threshold, no papers should exceed it
+        assert r_lenient.details.get("high_beauty_papers", 0) <= r_default.details.get("high_beauty_papers", 0)
+
+    def test_sbd_suspicious_threshold_param(self):
+        """Lower suspicious_threshold → higher normalized value."""
+        pubs = [
+            _make_publication(f"W{i}", 2005, 200, raw_data={
+                "counts_by_year": [
+                    {"year": 2005, "cited_by_count": 0},
+                    {"year": 2006, "cited_by_count": 0},
+                    {"year": 2007, "cited_by_count": 0},
+                    {"year": 2010, "cited_by_count": 100},
+                    {"year": 2011, "cited_by_count": 50},
+                ],
+            })
+            for i in range(5)
+        ]
+        ad = AuthorData(profile=_make_profile(), publications=pubs, citations=[])
+        r_default = compute_sbd(ad, suspicious_threshold=0.3)
+        r_strict = compute_sbd(ad, suspicious_threshold=0.1)
+        assert r_strict.value >= r_default.value
 
     def test_sbd_normalized_to_01(self):
         # Many papers with extreme beauty coefficients

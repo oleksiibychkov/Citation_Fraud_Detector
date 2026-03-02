@@ -118,6 +118,18 @@ class TestComputeANA:
         result = compute_ana(ad)
         assert result.details["total_papers_with_coauthors"] >= 1
 
+    def test_single_paper_threshold_param(self):
+        """Custom threshold normalizes single_paper ratio contribution."""
+        pubs = [
+            _make_pub(f"W{i}", co_authors=[_ca(f"C{i}")])
+            for i in range(5)
+        ]
+        ad = AuthorData(profile=_make_profile(publication_count=20), publications=pubs, citations=[])
+        r_default = compute_ana(ad, single_paper_threshold=0.5)
+        r_lenient = compute_ana(ad, single_paper_threshold=2.0)
+        # Higher threshold normalizes ratio down → lower overall ANA score
+        assert r_lenient.value <= r_default.value
+
     def test_few_publications_no_position_penalty(self):
         """Author with < 10 pubs shouldn't get position anomaly."""
         pubs = [

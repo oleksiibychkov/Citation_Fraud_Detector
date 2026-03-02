@@ -17,7 +17,7 @@ class ReportEvidenceRepository:
                 "author_id": author_id,
                 "evidence_type": e.get("evidence_type", "indicator"),
                 "indicator_type": e.get("indicator_type"),
-                "value": e.get("value"),
+                "data": e.get("data"),
                 "description": e.get("description"),
                 "algorithm_version": algorithm_version,
             }

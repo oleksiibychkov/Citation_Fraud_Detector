@@ -38,6 +38,21 @@ def export_to_csv(result: AnalysisResult, output_path: Path, settings: Settings 
                 details_str[:200],
             ])
 
+        # Theorem results
+        if result.theorem_results:
+            writer.writerow([])
+            writer.writerow(["# Theorem Results"])
+            writer.writerow(["theorem_number", "passed"])
+            for tr in result.theorem_results:
+                writer.writerow([tr.theorem_number, "PASSED" if tr.passed else "FAILED"])
+
+        # Warnings
+        if result.warnings:
+            writer.writerow([])
+            writer.writerow(["# Warnings"])
+            for w in result.warnings:
+                writer.writerow(["WARNING", w])
+
         writer.writerow([])
         _disclaimer = "This is a suspicion score, not a verdict. Final decision rests with a human."
         writer.writerow(["# Disclaimer", _disclaimer])

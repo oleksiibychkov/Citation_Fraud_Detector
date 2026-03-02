@@ -7,10 +7,37 @@ import hmac
 import json
 import logging
 from datetime import UTC, datetime
+from urllib.parse import urlparse
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+_BLOCKED_HOSTS = frozenset({
+    "localhost", "127.0.0.1", "::1", "0.0.0.0",
+    "metadata.google.internal", "169.254.169.254",
+})
+
+
+def _validate_webhook_url(url: str) -> None:
+    """Validate webhook URL to prevent SSRF attacks."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Webhook URL must use http(s), got {parsed.scheme!r}")
+    hostname = (parsed.hostname or "").lower()
+    if not hostname:
+        raise ValueError("Webhook URL has no hostname")
+    if hostname in _BLOCKED_HOSTS:
+        raise ValueError(f"Webhook URL hostname {hostname!r} is blocked")
+    # Block common private IP ranges
+    if hostname.startswith("10.") or hostname.startswith("192.168."):
+        raise ValueError(f"Webhook URL points to private IP: {hostname}")
+    if hostname.startswith("172."):
+        parts = hostname.split(".")
+        if len(parts) >= 2 and parts[1].isdigit():
+            second_octet = int(parts[1])
+            if 16 <= second_octet <= 31:
+                raise ValueError(f"Webhook URL points to private IP: {hostname}")
 
 
 def send_score_change_webhook(
@@ -27,6 +54,12 @@ def send_score_change_webhook(
 
     Returns True on success (2xx), False on failure (non-blocking).
     """
+    try:
+        _validate_webhook_url(url)
+    except ValueError:
+        logger.warning("Blocked webhook to %s: SSRF protection", url)
+        return False
+
     payload = {
         "event": "score_change",
         "timestamp": datetime.now(UTC).isoformat(),

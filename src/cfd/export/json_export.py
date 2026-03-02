@@ -100,6 +100,11 @@ def result_to_dict(result: AnalysisResult, settings: Settings | None = None) -> 
         "fraud_score": result.fraud_score,
         "confidence_level": result.confidence_level,
         "triggered_indicators": result.triggered_indicators,
+        "warnings": result.warnings,
         "indicators": {ind.indicator_type: round(ind.value, 6) for ind in result.indicators},
+        "theorem_results": [
+            {"theorem_number": tr.theorem_number, "passed": tr.passed}
+            for tr in result.theorem_results
+        ],
         "algorithm_version": s.algorithm_version,
     }

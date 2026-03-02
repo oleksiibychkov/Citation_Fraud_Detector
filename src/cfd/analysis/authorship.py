@@ -11,7 +11,11 @@ from cfd.graph.metrics import IndicatorResult
 logger = logging.getLogger(__name__)
 
 
-def compute_ana(author_data: AuthorData) -> IndicatorResult:
+def compute_ana(
+    author_data: AuthorData,
+    *,
+    single_paper_threshold: float = 0.5,
+) -> IndicatorResult:
     """Authorship Network Anomaly: detect guest/gift authorship patterns.
 
     Signals:
@@ -30,8 +34,9 @@ def compute_ana(author_data: AuthorData) -> IndicatorResult:
             details={"status": "no_coauthor_data", **stats},
         )
 
-    # Sub-signal 1: single-paper co-author ratio
-    single_ratio = _single_paper_coauthor_ratio(stats)
+    # Sub-signal 1: single-paper co-author ratio (normalized by threshold)
+    raw_ratio = _single_paper_coauthor_ratio(stats)
+    single_ratio = min(raw_ratio / single_paper_threshold, 1.0) if single_paper_threshold > 0 else raw_ratio
 
     # Sub-signal 2: position anomaly
     position_score = _position_anomaly_score(stats, author_data)

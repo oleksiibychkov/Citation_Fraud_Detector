@@ -7,7 +7,7 @@ import hmac
 import json
 from unittest.mock import MagicMock, patch
 
-from cfd.notifications.webhook import send_score_change_webhook
+from cfd.notifications.webhook import _validate_webhook_url, send_score_change_webhook
 
 
 class TestSendScoreChangeWebhook:
@@ -106,3 +106,57 @@ class TestSendScoreChangeWebhook:
 
         assert result is False
         mock_post.assert_called_once()
+
+
+class TestWebhookSSRFProtection:
+    """Tests for SSRF protection in webhook URL validation."""
+
+    def test_localhost_blocked(self):
+        import pytest
+        with pytest.raises(ValueError, match="blocked"):
+            _validate_webhook_url("http://localhost:8080/hook")
+
+    def test_127_0_0_1_blocked(self):
+        import pytest
+        with pytest.raises(ValueError, match="blocked"):
+            _validate_webhook_url("http://127.0.0.1/hook")
+
+    def test_private_10_blocked(self):
+        import pytest
+        with pytest.raises(ValueError, match="private"):
+            _validate_webhook_url("http://10.0.0.1/hook")
+
+    def test_private_192_168_blocked(self):
+        import pytest
+        with pytest.raises(ValueError, match="private"):
+            _validate_webhook_url("http://192.168.1.1/hook")
+
+    def test_private_172_16_blocked(self):
+        import pytest
+        with pytest.raises(ValueError, match="private"):
+            _validate_webhook_url("http://172.16.0.1/hook")
+
+    def test_metadata_endpoint_blocked(self):
+        import pytest
+        with pytest.raises(ValueError, match="blocked"):
+            _validate_webhook_url("http://169.254.169.254/latest/meta-data")
+
+    def test_ftp_scheme_blocked(self):
+        import pytest
+        with pytest.raises(ValueError, match="http"):
+            _validate_webhook_url("ftp://evil.com/hook")
+
+    def test_valid_https_url_passes(self):
+        # Should not raise
+        _validate_webhook_url("https://hooks.example.com/cfd")
+
+    def test_ssrf_blocked_returns_false(self):
+        """send_score_change_webhook returns False for SSRF URLs."""
+        result = send_score_change_webhook(
+            url="http://127.0.0.1:8080/steal",
+            author_name="Test",
+            author_id=1,
+            old_score=0.1,
+            new_score=0.5,
+        )
+        assert result is False

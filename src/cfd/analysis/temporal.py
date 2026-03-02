@@ -68,6 +68,8 @@ def compute_cv(
     author_data: AuthorData,
     baseline: DisciplineBaseline,
     current_year: int | None = None,
+    *,
+    cv_threshold: float = 5.0,
 ) -> IndicatorResult:
     """Citation Velocity: detect abnormally fast citation accumulation.
 
@@ -98,10 +100,9 @@ def compute_cv(
     mean_v = float(np.mean(arr))
     max_v = float(np.max(arr))
 
-    # Count papers with velocity above threshold (default 5.0)
+    # Count papers with velocity above threshold
     # Normalized: threshold -> 0.5, threshold*2 -> 1.0
     # Use median as the primary signal (robust to outliers)
-    cv_threshold = 5.0  # will be parameterized via settings in pipeline
     normalized = min(max(median_v / (cv_threshold * 2), 0.0), 1.0)
 
     # Top 3 fastest papers
@@ -163,7 +164,12 @@ def _compute_beauty_coefficient(yearly_citations: dict[int, int]) -> tuple[float
     return beauty, t_max, sleep_duration
 
 
-def compute_sbd(author_data: AuthorData) -> IndicatorResult:
+def compute_sbd(
+    author_data: AuthorData,
+    *,
+    beauty_threshold: float = 100.0,
+    suspicious_threshold: float = 0.3,
+) -> IndicatorResult:
     """Sleeping Beauty Detector: identify papers with delayed recognition.
 
     Uses Beauty Coefficient B (van Raan) to detect papers that were
@@ -216,14 +222,12 @@ def compute_sbd(author_data: AuthorData) -> IndicatorResult:
     avg_beauty = sum(p["beauty_coefficient"] for p in paper_beauties) / len(paper_beauties)
 
     # Count papers exceeding the beauty threshold
-    beauty_threshold = 100.0  # will be parameterized via settings in pipeline
     high_beauty_count = sum(1 for p in paper_beauties if p["beauty_coefficient"] > beauty_threshold)
 
     # Suspicious ratio: proportion of high-B papers
     suspicious_ratio = high_beauty_count / len(author_data.publications) if author_data.publications else 0.0
 
     # Normalize: suspicious_threshold -> 0.5, suspicious_threshold*2 -> 1.0
-    suspicious_threshold = 0.3
     normalized = min(max(suspicious_ratio / (suspicious_threshold * 2), 0.0), 1.0)
 
     return IndicatorResult(

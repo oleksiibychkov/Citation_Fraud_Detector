@@ -142,7 +142,7 @@ class AnalysisPipeline:
         indicators.append(compute_scr(author_data))
         indicators.append(compute_mcr_from_author_data(author_data))
         indicators.append(compute_cb(author_data))
-        indicators.append(compute_ta(author_data))
+        indicators.append(compute_ta(author_data, z_threshold=self._settings.ta_z_threshold))
         indicators.append(compute_hta(author_data))
 
         # Step 5b: New indicators (RLA, GIC)
@@ -212,14 +212,24 @@ class AnalysisPipeline:
         # Step 5g: Citation Velocity + Sleeping Beauty
         try:
             baseline = get_baseline(author_data.profile.discipline)
-            indicators.append(compute_cv(author_data, baseline))
-            indicators.append(compute_sbd(author_data))
+            indicators.append(compute_cv(
+                author_data, baseline,
+                cv_threshold=self._settings.cv_threshold,
+            ))
+            indicators.append(compute_sbd(
+                author_data,
+                beauty_threshold=self._settings.sbd_beauty_threshold,
+                suspicious_threshold=self._settings.sbd_suspicious_threshold,
+            ))
         except Exception:
             logger.warning("Temporal indicators (CV/SBD) failed", exc_info=True)
 
         # Step 5i: Stage 5 indicators (ANA, CC, SSD, PB, CPC)
         try:
-            indicators.append(compute_ana(author_data))
+            indicators.append(compute_ana(
+                author_data,
+                single_paper_threshold=self._settings.ana_single_paper_coauthor_threshold,
+            ))
         except Exception:
             logger.warning("ANA computation failed", exc_info=True)
 

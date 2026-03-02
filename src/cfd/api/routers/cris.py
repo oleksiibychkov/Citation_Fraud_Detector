@@ -78,12 +78,14 @@ def _extract_converis_author(body: ConverisSyncBody) -> CRISAuthorPayload | None
     p = body.person
     if not p:
         return None
+    action = "queue_analysis" if body.action == "analyze" else "add_to_watchlist"
     return CRISAuthorPayload(
         surname=p.get("familyName", p.get("surname", "")),
         given_name=p.get("givenName"),
         orcid=p.get("orcid"),
         scopus_id=p.get("scopusAuthorId"),
         institution=p.get("affiliation"),
+        action=action,
     )
 
 
