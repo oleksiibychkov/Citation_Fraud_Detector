@@ -68,7 +68,12 @@ class ScopusStrategy(DataSourceStrategy):
             author_data = self._fetch_by_name(surname)
 
         if author_data is None:
-            raise AuthorNotFoundError(f"Author not found in Scopus: {surname}")
+            raise AuthorNotFoundError(
+                f"Author not found in Scopus: {surname}. "
+                "This may happen if the Scopus API key is invalid or restricted to "
+                "your institution's IP range (Render.com IPs are not in that range). "
+                "Try 'auto' or 'openalex' data source, or use an Institutional Token (insttoken)."
+            )
 
         profile = self._parse_author(author_data, surname)
 
@@ -97,6 +102,7 @@ class ScopusStrategy(DataSourceStrategy):
             data = self._http.get(url, headers=self._headers(), source_api="scopus")
             return data.get("author-retrieval-response", [{}])[0]
         except Exception:
+            logger.warning("Scopus: failed to fetch author by ID %s", scopus_id, exc_info=True)
             return None
 
     def _fetch_by_orcid(self, orcid: str) -> dict | None:
@@ -109,7 +115,7 @@ class ScopusStrategy(DataSourceStrategy):
                 author_id = results[0]["dc:identifier"].replace("AUTHOR_ID:", "")
                 return self._fetch_by_scopus_id(author_id)
         except Exception:
-            pass
+            logger.warning("Scopus: failed to fetch author by ORCID %s", orcid, exc_info=True)
         return None
 
     def _fetch_by_name(self, name: str) -> dict | None:
@@ -122,7 +128,7 @@ class ScopusStrategy(DataSourceStrategy):
                 author_id = results[0]["dc:identifier"].replace("AUTHOR_ID:", "")
                 return self._fetch_by_scopus_id(author_id)
         except Exception:
-            pass
+            logger.warning("Scopus: failed to fetch author by name %s", name, exc_info=True)
         return None
 
     def _parse_author(self, data: dict, surname: str) -> AuthorProfile:
