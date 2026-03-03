@@ -162,18 +162,39 @@ LEVEL_LABELS = {
 }
 
 
+def _get_effective_settings(overrides: dict | None = None):
+    """Build Settings with optional overrides from session_state."""
+    from cfd.config.settings import Settings
+    settings = Settings()
+    if overrides:
+        try:
+            settings = settings.model_copy(update=overrides)
+        except Exception:
+            pass
+    return settings
+
+
 def render():
     """Render the author dossier page."""
     st.header("Досьє автора")
 
-    # Форма введення
+    # Форма введення (pre-fill from session state)
     col1, col2, col3 = st.columns(3)
     with col1:
-        author_name = st.text_input("Прізвище автора")
+        author_name = st.text_input(
+            "Прізвище автора",
+            value=st.session_state.get("dossier_author_name", ""),
+        )
     with col2:
-        scopus_id = st.text_input("Scopus ID")
+        scopus_id = st.text_input(
+            "Scopus ID",
+            value=st.session_state.get("dossier_scopus_id", ""),
+        )
     with col3:
-        orcid = st.text_input("ORCID")
+        orcid = st.text_input(
+            "ORCID",
+            value=st.session_state.get("dossier_orcid", ""),
+        )
 
     # Scopus доступний лише з ключем
     from cfd.config.settings import Settings as _Settings
@@ -184,24 +205,69 @@ def render():
         sources.append("scopus")
     source = st.selectbox("Джерело даних", sources)
 
-    if not st.button("Аналізувати"):
-        return
+    # --- Buttons row ---
+    btn_col1, btn_col2 = st.columns(2)
+    with btn_col1:
+        analyze_clicked = st.button("Аналізувати")
+    with btn_col2:
+        has_cached = "dossier_author_data" in st.session_state and st.session_state["dossier_author_data"] is not None
+        reanalyze_clicked = st.button("Повторний аналіз", disabled=not has_cached)
 
-    if not author_name:
-        st.error("Прізвище автора є обов'язковим.")
-        return
+    overrides = st.session_state.get("threshold_overrides", {})
 
-    if not scopus_id and not orcid:
-        st.error("Потрібно вказати Scopus ID або ORCID.")
-        return
+    # Show override info
+    if has_cached and overrides:
+        st.info(f"Змінено {len(overrides)} параметрів у Налаштуваннях. Натисніть «Повторний аналіз» для застосування.")
 
-    # Запуск аналізу
-    with st.spinner("Аналізуємо..."):
-        result, author_data = _run_analysis(author_name, scopus_id, orcid, source)
+    # --- Handle "Аналізувати" ---
+    if analyze_clicked:
+        if not author_name:
+            st.error("Прізвище автора є обов'язковим.")
+            return
+        if not scopus_id and not orcid:
+            st.error("Потрібно вказати Scopus ID або ORCID.")
+            return
+
+        with st.spinner("Аналізуємо..."):
+            result, author_data, pipeline = _run_analysis(author_name, scopus_id, orcid, source)
+
+        if result is None:
+            st.error("Аналіз не вдався. Перевірте вхідні дані та спробуйте знову.")
+            return
+
+        # Cache in session state
+        st.session_state["dossier_result"] = result
+        st.session_state["dossier_author_data"] = author_data
+        st.session_state["dossier_pipeline"] = pipeline
+        st.session_state["dossier_author_name"] = author_name
+        st.session_state["dossier_scopus_id"] = scopus_id
+        st.session_state["dossier_orcid"] = orcid
+
+    # --- Handle "Повторний аналіз" ---
+    if reanalyze_clicked:
+        cached_data = st.session_state.get("dossier_author_data")
+        pipeline = st.session_state.get("dossier_pipeline")
+        if cached_data and pipeline:
+            with st.spinner("Повторний аналіз з новими параметрами..."):
+                try:
+                    new_result = pipeline.analyze_from_data(
+                        cached_data,
+                        settings_overrides=overrides or None,
+                    )
+                    st.session_state["dossier_result"] = new_result
+                except Exception as e:
+                    st.error(f"Помилка повторного аналізу: {e}")
+        else:
+            st.warning("Спочатку виконайте аналіз кнопкою «Аналізувати».")
+
+    # --- Display results if available ---
+    result = st.session_state.get("dossier_result")
+    author_data = st.session_state.get("dossier_author_data")
 
     if result is None:
-        st.error("Аналіз не вдався. Перевірте вхідні дані та спробуйте знову.")
         return
+
+    effective_settings = _get_effective_settings(overrides)
 
     # Дисклеймер джерела даних
     api_used = getattr(result.author_profile, "source_api", source) or source
@@ -234,38 +300,9 @@ def render():
         unsafe_allow_html=True,
     )
 
-    # Розділ 3: Індикатори з описами
+    # Розділ 3: Індикатори з описами та порогами
     st.subheader("Індикатори")
-    triggered = set(result.triggered_indicators)
-    triggered_details = []
-    normal_details = []
-
-    for ind in result.indicators:
-        name = ind.indicator_type
-        value = ind.value
-        is_triggered = name in triggered
-        info = INDICATOR_INFO.get(name)
-        full_name = info[0] if info else name
-        description = info[1] if info else ""
-
-        if is_triggered:
-            triggered_details.append((name, full_name, value, description))
-        else:
-            normal_details.append((name, full_name, value, description))
-
-    # Спрацьовані (підозрілі) індикатори — першими
-    if triggered_details:
-        st.markdown("#### \u26a0\ufe0f Спрацьовані індикатори (перевищено поріг)")
-        for code, full_name, value, description in triggered_details:
-            with st.expander(f"\u26a0\ufe0f **{code}** ({full_name}): {value:.4f}", expanded=True):
-                st.markdown(description)
-
-    # Нормальні індикатори (згорнуті)
-    if normal_details:
-        st.markdown("#### \u2705 Нормальні індикатори (в межах порогу)")
-        for code, full_name, value, description in normal_details:
-            with st.expander(f"\u2705 **{code}** ({full_name}): {value:.4f}"):
-                st.markdown(description)
+    _render_indicators(result, effective_settings)
 
     # Розділ 4: Попередження
     if result.warnings:
@@ -278,11 +315,70 @@ def render():
     _render_visualizations(author_data, result)
 
     # Розділ 6: Висновок
-    _render_conclusion(result, level, color)
+    _render_conclusion(result, level, color, effective_settings)
 
 
-def _render_conclusion(result, level, color):
+def _render_indicators(result, effective_settings):
+    """Render indicators with threshold information."""
+    from cfd.graph.scoring import get_trigger_threshold
+
+    triggered = set(result.triggered_indicators)
+    triggered_details = []
+    normal_details = []
+
+    for ind in result.indicators:
+        name = ind.indicator_type
+        value = ind.value
+        is_triggered = name in triggered
+        info = INDICATOR_INFO.get(name)
+        full_name = info[0] if info else name
+        description = info[1] if info else ""
+        threshold = get_trigger_threshold(name, effective_settings)
+
+        entry = (name, full_name, value, description, threshold, is_triggered, ind)
+        if is_triggered:
+            triggered_details.append(entry)
+        else:
+            normal_details.append(entry)
+
+    # Спрацьовані (підозрілі) індикатори — першими
+    if triggered_details:
+        st.markdown("#### \u26a0\ufe0f Спрацьовані індикатори (перевищено поріг)")
+        for code, full_name, value, description, threshold, _, ind in triggered_details:
+            with st.expander(f"\u26a0\ufe0f **{code}** ({full_name}): {value:.4f}", expanded=True):
+                _render_threshold_line(code, value, threshold, ind, is_triggered=True)
+                st.markdown(description)
+
+    # Нормальні індикатори (згорнуті)
+    if normal_details:
+        st.markdown("#### \u2705 Нормальні індикатори (в межах порогу)")
+        for code, full_name, value, description, threshold, _, ind in normal_details:
+            with st.expander(f"\u2705 **{code}** ({full_name}): {value:.4f}"):
+                _render_threshold_line(code, value, threshold, ind, is_triggered=False)
+                st.markdown(description)
+
+
+def _render_threshold_line(code: str, value: float, threshold: float, ind, *, is_triggered: bool):
+    """Render the value/threshold comparison line for an indicator."""
+    status_icon = "\u26a0\ufe0f Перевищено" if is_triggered else "\u2705 В межах норми"
+
+    # TA and HTA compare z-score from details, not value
+    if code in ("TA", "HTA"):
+        z_score = ind.details.get("max_z_score", 0)
+        st.markdown(
+            f"**Значення:** {value:.4f} (Z-оцінка: {z_score:.2f}) | "
+            f"**Поріг Z-оцінки:** {threshold:.2f} | {status_icon}"
+        )
+    else:
+        st.markdown(
+            f"**Значення:** {value:.4f} | **Поріг:** {threshold:.4f} | {status_icon}"
+        )
+
+
+def _render_conclusion(result, level, color, effective_settings):
     """Render a detailed conclusion about the analysis."""
+    from cfd.graph.scoring import get_trigger_threshold
+
     st.subheader("Висновок")
 
     triggered = result.triggered_indicators
@@ -308,7 +404,7 @@ def _render_conclusion(result, level, color):
     conclusion = LEVEL_CONCLUSIONS.get(level, "")
     st.markdown(conclusion)
 
-    # Перелік спрацьованих індикаторів
+    # Перелік спрацьованих індикаторів з порогами
     if triggered:
         st.markdown("**Спрацьовані індикатори:**")
         for code in triggered:
@@ -319,7 +415,8 @@ def _render_conclusion(result, level, color):
                 if ind.indicator_type == code:
                     value = ind.value
                     break
-            st.markdown(f"- **{code}** ({full_name}): {value:.4f}")
+            threshold = get_trigger_threshold(code, effective_settings)
+            st.markdown(f"- **{code}** ({full_name}): {value:.4f} (поріг: {threshold:.4f})")
 
     # Дисклеймер
     from cfd.dashboard.disclaimer import render_disclaimer
@@ -328,29 +425,35 @@ def _render_conclusion(result, level, color):
 
 
 def _run_analysis(author_name, scopus_id, orcid, source):
-    """Run the analysis pipeline."""
+    """Run the analysis pipeline. Returns (result, author_data, pipeline)."""
     try:
         from cfd.cli.main import _build_pipeline, _build_strategy
         from cfd.config.settings import Settings
 
         settings = Settings()
+        # Apply threshold overrides from session state
+        overrides = st.session_state.get("threshold_overrides", {})
+        if overrides:
+            try:
+                settings = settings.model_copy(update=overrides)
+            except Exception:
+                st.warning("Помилка застосування налаштувань. Використано стандартні значення.")
+
         strategy = _build_strategy(source, settings)
         pipeline = _build_pipeline(strategy, settings)
 
-        result = pipeline.analyze(author_name, scopus_id=scopus_id or None, orcid=orcid or None)
+        # Collect data once
+        author_data = strategy.collect(
+            author_name, scopus_id=scopus_id or None, orcid=orcid or None,
+        )
 
-        # Збір даних для візуалізацій
-        try:
-            author_data = strategy.collect(author_name, scopus_id=scopus_id or None, orcid=orcid or None)
-        except Exception:
-            from cfd.data.models import AuthorData
+        # Run analysis on collected data (avoids double API call)
+        result = pipeline.analyze_from_data(author_data, settings_overrides=overrides or None)
 
-            author_data = AuthorData(profile=result.author_profile, publications=[], citations=[])
-
-        return result, author_data
+        return result, author_data, pipeline
     except Exception as e:
         st.error(f"Помилка: {e}")
-        return None, None
+        return None, None, None
 
 
 def _render_visualizations(author_data, result):

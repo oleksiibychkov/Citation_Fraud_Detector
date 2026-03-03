@@ -337,7 +337,7 @@ class TestDossier:
         _mock_streamlit.text_input.side_effect = ["TestAuthor", "123", ""]
         from cfd.dashboard.pages.dossier import render
 
-        with patch("cfd.dashboard.pages.dossier._run_analysis", return_value=(None, None)):
+        with patch("cfd.dashboard.pages.dossier._run_analysis", return_value=(None, None, None)):
             render()
         _mock_streamlit.error.assert_called()
 
@@ -359,9 +359,16 @@ class TestDossier:
         )
         author_data = AuthorData(profile=profile, publications=[], citations=[])
 
+        # Pre-populate session_state so the display code finds cached results
+        _mock_streamlit.session_state["dossier_result"] = result
+        _mock_streamlit.session_state["dossier_author_data"] = author_data
+        _mock_streamlit.session_state["dossier_pipeline"] = MagicMock()
+
         from cfd.dashboard.pages.dossier import render
 
-        with patch("cfd.dashboard.pages.dossier._run_analysis", return_value=(result, author_data)):
+        mock_pipeline = MagicMock()
+        mock_pipeline.analyze_from_data.return_value = result
+        with patch("cfd.dashboard.pages.dossier._run_analysis", return_value=(result, author_data, mock_pipeline)):
             render()
 
     def test_run_analysis_success(self, _mock_streamlit):
@@ -370,21 +377,21 @@ class TestDossier:
         mock_pipeline = MagicMock()
         mock_result = MagicMock()
         mock_result.author_profile = MagicMock()
-        mock_pipeline.analyze.return_value = mock_result
+        mock_pipeline.analyze_from_data.return_value = mock_result
         mock_strategy = MagicMock()
         mock_strategy.collect.return_value = MagicMock()
 
         with patch("cfd.config.settings.Settings", return_value=MagicMock()), \
              patch("cfd.cli.main._build_strategy", return_value=mock_strategy), \
              patch("cfd.cli.main._build_pipeline", return_value=mock_pipeline):
-            result, data = _run_analysis("Test", "123", "", "auto")
+            result, data, pipeline = _run_analysis("Test", "123", "", "auto")
         assert result is not None
 
     def test_run_analysis_exception(self, _mock_streamlit):
         from cfd.dashboard.pages.dossier import _run_analysis
 
         with patch("cfd.config.settings.Settings", side_effect=Exception("fail")):
-            result, data = _run_analysis("Test", "123", "", "auto")
+            result, data, pipeline = _run_analysis("Test", "123", "", "auto")
         assert result is None
 
     def test_render_visualizations(self, _mock_streamlit):

@@ -146,6 +146,35 @@ def _is_triggered(indicator: IndicatorResult, settings: Settings) -> bool:
     return False
 
 
+def get_trigger_threshold(indicator_type: str, settings: Settings) -> float:
+    """Return the trigger threshold for an indicator type."""
+    thresholds = {
+        "SCR": settings.scr_warn_threshold,
+        "MCR": settings.mcr_threshold,
+        "CB": settings.cb_threshold,
+        "TA": settings.ta_z_threshold,
+        "HTA": settings.ta_z_threshold,
+        "RLA": settings.rla_threshold,
+        "GIC": settings.gic_threshold,
+        "EIGEN": settings.eigenvector_threshold,
+        "BETWEENNESS": settings.betweenness_threshold,
+        "PAGERANK": settings.pagerank_threshold,
+        "COMMUNITY": 0.5,
+        "CLIQUE": 0.5,
+        "CV": 0.4,
+        "SBD": settings.sbd_suspicious_threshold,
+        "CTX": 0.4,
+        "ANA": 0.4,
+        "PB": 0.3,
+        "SSD": 0.3,
+        "CC": 0.3,
+        "CPC": 0.3,
+        "JSCR": 0.3,
+        "COERCE": 0.3,
+    }
+    return thresholds.get(indicator_type, 0.5)
+
+
 def compute_fraud_score(
     indicators: list[IndicatorResult],
     settings: Settings,

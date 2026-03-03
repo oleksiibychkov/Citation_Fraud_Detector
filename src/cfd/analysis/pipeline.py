@@ -17,7 +17,7 @@ from cfd.analysis.peer_benchmark import compute_pb
 from cfd.analysis.salami import compute_ssd
 from cfd.analysis.temporal import compute_cv, compute_sbd
 from cfd.config.settings import Settings
-from cfd.data.models import AuthorProfile
+from cfd.data.models import AuthorData, AuthorProfile
 from cfd.data.strategy import DataSourceStrategy
 from cfd.db.repositories.authors import AuthorRepository
 from cfd.db.repositories.citations import CitationRepository
@@ -117,18 +117,72 @@ class AnalysisPipeline:
         # Step 1b: Incremental check — log if nothing changed, but always proceed
         self._check_incremental(author_data, warnings)
 
+        # Apply sensitivity overrides
+        effective_settings = self._settings
+        if sensitivity_overrides:
+            try:
+                effective_settings = self._settings.model_copy(update=sensitivity_overrides)
+            except Exception:
+                logger.warning("Invalid sensitivity overrides — using defaults", exc_info=True)
+
+        return self._run_core_analysis(author_data, effective_settings, persist=True, warnings=warnings)
+
+    def analyze_from_data(
+        self,
+        author_data: AuthorData,
+        *,
+        settings_overrides: dict | None = None,
+    ) -> AnalysisResult:
+        """Re-run analysis on pre-collected data with optional threshold overrides.
+
+        Skips data collection (Step 1) and data persistence.
+        All indicator computations use the overridden settings.
+        """
+        effective_settings = self._settings
+        if settings_overrides:
+            try:
+                effective_settings = self._settings.model_copy(update=settings_overrides)
+            except Exception:
+                logger.warning("Invalid settings overrides — using defaults", exc_info=True)
+
+        return self._run_core_analysis(author_data, effective_settings, persist=False)
+
+    def _run_core_analysis(
+        self,
+        author_data: AuthorData,
+        settings: Settings,
+        *,
+        persist: bool = True,
+        warnings: list[str] | None = None,
+    ) -> AnalysisResult:
+        """Core analysis: eligibility check, graph building, indicators, scoring.
+
+        Parameters
+        ----------
+        author_data : AuthorData
+            Pre-collected author data.
+        settings : Settings
+            Effective settings (may include user overrides).
+        persist : bool
+            Whether to persist data and results to DB.
+        warnings : list[str] | None
+            Existing warnings list to append to.
+        """
+        if warnings is None:
+            warnings = []
+
         # Step 2: Check eligibility
-        eligible, reason = check_eligibility(author_data.profile, self._settings)
+        eligible, reason = check_eligibility(author_data.profile, settings)
         if not eligible:
-            logger.info("Author %s: %s", surname, reason)
+            logger.info("Author %s: %s", author_data.profile.surname, reason)
             return AnalysisResult(
                 author_profile=author_data.profile,
                 status="insufficient_data",
                 warnings=[reason],
             )
 
-        # Step 3: Persist data to DB (if repos available)
-        author_id = self._persist_data(author_data)
+        # Step 3: Persist data to DB (if repos available and persist=True)
+        author_id = self._persist_data(author_data) if persist else None
 
         # Step 4: Build graph
         logger.info("Building citation graph...")
@@ -140,7 +194,7 @@ class AnalysisPipeline:
         indicators.append(compute_scr(author_data))
         indicators.append(compute_mcr_from_author_data(author_data))
         indicators.append(compute_cb(author_data))
-        indicators.append(compute_ta(author_data, z_threshold=self._settings.ta_z_threshold))
+        indicators.append(compute_ta(author_data, z_threshold=settings.ta_z_threshold))
         indicators.append(compute_hta(author_data))
 
         # Step 5b: New indicators (RLA, GIC)
@@ -149,7 +203,8 @@ class AnalysisPipeline:
         indicators.append(compute_gic(author_data, baseline=gic_baseline))
 
         # Step 5c: Extended centrality via graph engine
-        engine = self._select_engine(citation_graph)
+        engine = self._select_engine(citation_graph, settings)
+        author_work_ids: set[str] = set()
         if engine is not None:
             # Graph is work-level; aggregate centrality over author's works
             author_work_ids = {pub.work_id for pub in author_data.publications}
@@ -162,30 +217,31 @@ class AnalysisPipeline:
             try:
                 community_result = detect_communities(
                     engine,
-                    density_ratio_threshold=self._settings.community_density_ratio_threshold,
-                    min_community_size=self._settings.min_community_size,
+                    density_ratio_threshold=settings.community_density_ratio_threshold,
+                    min_community_size=settings.min_community_size,
                 )
                 indicators.append(community_to_indicator(
-                    community_result, min_community_size=self._settings.min_community_size,
+                    community_result, min_community_size=settings.min_community_size,
                 ))
             except Exception:
                 logger.warning("Community detection failed", exc_info=True)
                 warnings.append("Community detection failed")
 
         # Step 5e: Mutual graph + clique detection
+        mutual_graph = None
         clique_results = []
         try:
             mutual_graph = build_mutual_graph(
                 author_data.citations,
-                mcr_threshold=self._settings.mutual_mcr_threshold,
+                mcr_threshold=settings.mutual_mcr_threshold,
                 author_data=author_data,
             )
-            if len(mutual_graph.nodes) >= self._settings.min_clique_size:
+            if len(mutual_graph.nodes) >= settings.min_clique_size:
                 from cfd.graph.engine import NetworkXEngine
 
                 mutual_engine = NetworkXEngine(mutual_graph)
                 clique_results = detect_cliques(
-                    mutual_engine, min_size=self._settings.min_clique_size,
+                    mutual_engine, min_size=settings.min_clique_size,
                 )
                 indicators.append(clique_to_indicator(clique_results))
         except Exception:
@@ -197,30 +253,24 @@ class AnalysisPipeline:
         if engine is not None:
             try:
                 subset = author_work_ids & set(citation_graph.nodes) if citation_graph is not None else set()
-                # μ(S) = mutual index of the author subgraph (Def. 6.6)
-                # Use author-level graph (mutual_graph engine) for mutual index
-                # but T1 acyclicity check needs directed graph (engine)
                 mu_s = 0.0
                 if mutual_graph is not None and len(mutual_graph.nodes) >= 2:
                     from cfd.graph.engine import NetworkXEngine as _NXE
-                    # Compute mutual index on the directed author graph
-                    # Build directed author graph from citations
                     from cfd.graph.builder import build_author_graph
                     author_digraph = build_author_graph(author_data.citations)
                     if len(author_digraph.nodes) >= 2:
                         author_engine = _NXE(author_digraph)
                         author_subset = set(author_digraph.nodes)
                         mu_s = compute_mutual_index(author_engine, author_subset)
-                # Discipline baseline for mutual index (empirical estimates)
                 baseline = get_baseline(author_data.profile.discipline)
-                mu_d = baseline.avg_scr * 0.5  # mutual index baseline ~half of SCR baseline
+                mu_d = baseline.avg_scr * 0.5
                 sigma_d = baseline.std_scr * 0.5
                 if sigma_d <= 0:
-                    sigma_d = 0.05  # safe fallback
+                    sigma_d = 0.05
                 theorem_results = run_hierarchy(
                     engine, subset, mu_s, mu_d, sigma_d,
                     clique_results,
-                    z_threshold=self._settings.cantelli_z_threshold,
+                    z_threshold=settings.cantelli_z_threshold,
                 )
             except Exception:
                 logger.warning("Theorem hierarchy failed", exc_info=True)
@@ -231,15 +281,14 @@ class AnalysisPipeline:
             baseline = get_baseline(author_data.profile.discipline)
             indicators.append(compute_cv(
                 author_data, baseline,
-                cv_threshold=self._settings.cv_threshold,
+                cv_threshold=settings.cv_threshold,
             ))
-            # Cross-check SBD with CB and TA (§8.1.12)
             cb_ind = next((i for i in indicators if i.indicator_type == "CB"), None)
             ta_ind = next((i for i in indicators if i.indicator_type == "TA"), None)
             indicators.append(compute_sbd(
                 author_data,
-                beauty_threshold=self._settings.sbd_beauty_threshold,
-                suspicious_threshold=self._settings.sbd_suspicious_threshold,
+                beauty_threshold=settings.sbd_beauty_threshold,
+                suspicious_threshold=settings.sbd_suspicious_threshold,
                 cb_result=cb_ind,
                 ta_result=ta_ind,
             ))
@@ -251,7 +300,7 @@ class AnalysisPipeline:
         try:
             indicators.append(compute_ana(
                 author_data,
-                single_paper_threshold=self._settings.ana_single_paper_coauthor_threshold,
+                single_paper_threshold=settings.ana_single_paper_coauthor_threshold,
             ))
         except Exception:
             logger.warning("ANA computation failed", exc_info=True)
@@ -260,8 +309,8 @@ class AnalysisPipeline:
         try:
             indicators.append(compute_ssd(
                 author_data,
-                similarity_threshold=self._settings.ssd_similarity_threshold,
-                interval_days=self._settings.ssd_interval_days,
+                similarity_threshold=settings.ssd_similarity_threshold,
+                interval_days=settings.ssd_interval_days,
             ))
         except Exception:
             logger.warning("SSD computation failed", exc_info=True)
@@ -272,7 +321,7 @@ class AnalysisPipeline:
             ssd_ind = next((i for i in indicators if i.indicator_type == "SSD"), None)
             indicators.append(compute_cc(
                 author_data,
-                per_paper_threshold=self._settings.cc_per_paper_threshold,
+                per_paper_threshold=settings.cc_per_paper_threshold,
                 ssd_result=ssd_ind,
             ))
         except Exception:
@@ -285,8 +334,8 @@ class AnalysisPipeline:
                 author_data,
                 peer_repo=self._peer_repo,
                 author_repo=self._author_repo,
-                k=self._settings.pb_k_neighbors,
-                min_peers=self._settings.pb_min_peers,
+                k=settings.pb_k_neighbors,
+                min_peers=settings.pb_min_peers,
                 author_id=author_id,
                 indicator_results=pb_indicator_map,
             ))
@@ -298,7 +347,7 @@ class AnalysisPipeline:
             indicators.append(compute_cpc(
                 author_data,
                 secondary_strategy=self._secondary_strategy,
-                divergence_threshold=self._settings.cpc_divergence_threshold,
+                divergence_threshold=settings.cpc_divergence_threshold,
             ))
         except Exception:
             logger.warning("CPC computation failed", exc_info=True)
@@ -322,27 +371,22 @@ class AnalysisPipeline:
             indicator_map = {ind.indicator_type: ind for ind in indicators}
             ctx_result = contextual_check(
                 author_data, indicator_map,
-                independent_threshold=self._settings.ctx_independent_threshold,
+                independent_threshold=settings.ctx_independent_threshold,
             )
             indicators.append(ctx_result)
         except Exception:
             logger.warning("Contextual analysis (CTX) failed", exc_info=True)
             warnings.append("Contextual analysis (CTX) failed")
 
-        # Step 6: Compute fraud score (apply sensitivity overrides if provided)
-        effective_settings = self._settings
-        if sensitivity_overrides:
-            try:
-                effective_settings = self._settings.model_copy(update=sensitivity_overrides)
-            except Exception:
-                logger.warning("Invalid sensitivity overrides — using defaults", exc_info=True)
-        score, confidence, triggered = compute_fraud_score(indicators, effective_settings)
+        # Step 6: Compute fraud score
+        score, confidence, triggered = compute_fraud_score(indicators, settings)
 
         # Step 7: Persist results
-        if author_id:
+        if persist and author_id:
             self._persist_results(author_id, indicators, score, confidence, triggered)
 
-        logger.info("Analysis complete for %s: score=%.4f, level=%s", surname, score, confidence)
+        logger.info("Analysis complete for %s: score=%.4f, level=%s",
+                     author_data.profile.surname, score, confidence)
 
         return AnalysisResult(
             author_profile=author_data.profile,
@@ -396,16 +440,17 @@ class AnalysisPipeline:
 
         return None
 
-    def _select_engine(self, citation_graph) -> GraphEngine | None:
+    def _select_engine(self, citation_graph, settings: Settings | None = None) -> GraphEngine | None:
         """Select appropriate graph engine. Returns None if graph is too small."""
         import networkx as nx
 
+        s = settings or self._settings
         if not isinstance(citation_graph, (nx.DiGraph, nx.Graph)):
             return None
         if len(citation_graph.nodes) < 2:
             return None
         try:
-            return select_engine(citation_graph, threshold=self._settings.igraph_node_threshold)
+            return select_engine(citation_graph, threshold=s.igraph_node_threshold)
         except Exception:
             logger.warning("Failed to initialize graph engine", exc_info=True)
             return None

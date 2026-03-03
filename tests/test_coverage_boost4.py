@@ -641,9 +641,9 @@ class TestDashboardBranches:
         """Dossier handles analysis exception gracefully."""
         from cfd.dashboard.pages.dossier import _run_analysis
         with patch("cfd.cli.main._build_strategy", side_effect=Exception("fail")):
-            result, data = _run_analysis("Test", None, None, "openalex")
-        # Should return (None, None) and call st.error
-        assert result is None and data is None
+            result, data, pipeline = _run_analysis("Test", None, None, "openalex")
+        # Should return (None, None, None) and call st.error
+        assert result is None and data is None and pipeline is None
 
     def test_compare_missing_metric(self):
         """Compare page handles missing metric value."""

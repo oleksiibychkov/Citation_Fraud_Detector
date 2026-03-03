@@ -23,6 +23,7 @@ def main():
             "Досьє автора",
             "Порівняння знімків",
             "Антирейтинг",
+            "Налаштування",
         ],
     )
 
@@ -40,6 +41,10 @@ def main():
         render()
     elif page == "Антирейтинг":
         from cfd.dashboard.pages.antiranking import render
+
+        render()
+    elif page == "Налаштування":
+        from cfd.dashboard.pages.settings import render
 
         render()
 

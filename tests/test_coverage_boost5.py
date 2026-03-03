@@ -320,29 +320,28 @@ class TestDossierVisualizationBranches:
 
         self.mock_st.columns.side_effect = _columns
         self.mock_st.tabs.side_effect = _tabs
+        self.mock_st.session_state = {"lang": "ua"}
+        self.mock_st.spinner.return_value.__enter__ = MagicMock()
+        self.mock_st.spinner.return_value.__exit__ = MagicMock(return_value=False)
         import cfd.dashboard.pages.dossier  # noqa: F401
         monkeypatch.setattr("cfd.dashboard.pages.dossier.st", self.mock_st)
 
     def test_run_analysis_collect_fallback(self):
-        """_run_analysis falls back to empty AuthorData when collect fails."""
+        """_run_analysis returns None when collect fails (no data to analyze)."""
         from cfd.dashboard.pages.dossier import _run_analysis
 
-        mock_result = MagicMock()
-        mock_result.author_profile = _profile()
         mock_strategy = MagicMock()
         mock_strategy.collect.side_effect = Exception("collect fail")
         mock_pipeline = MagicMock()
-        mock_pipeline.analyze.return_value = mock_result
 
         with (
             patch("cfd.cli.main._build_strategy", return_value=mock_strategy),
             patch("cfd.cli.main._build_pipeline", return_value=mock_pipeline),
         ):
-            result, author_data = _run_analysis("Test", "123", None, "openalex")
+            result, author_data, pipeline = _run_analysis("Test", "123", None, "openalex")
 
-        assert result is not None
-        assert author_data is not None
-        assert author_data.publications == []
+        # collect() fails → entire _run_analysis returns (None, None, None)
+        assert result is None
 
     def test_render_visualizations_import_error(self):
         """_render_visualizations handles missing plotly."""
@@ -386,6 +385,16 @@ class TestDossierVisualizationBranches:
         mock_result.fraud_score = 0.5
         mock_result.indicators = []
         mock_result.triggered_indicators = []
+        mock_result.warnings = []
+
+        author_data = AuthorData(profile=_profile(), publications=[], citations=[])
+        mock_pipeline = MagicMock()
+        mock_pipeline.analyze_from_data.return_value = mock_result
+
+        # Pre-populate session_state
+        self.mock_st.session_state["dossier_result"] = mock_result
+        self.mock_st.session_state["dossier_author_data"] = author_data
+        self.mock_st.session_state["dossier_pipeline"] = mock_pipeline
 
         self.mock_st.button.return_value = True
         self.mock_st.text_input.side_effect = ["TestAuthor", "123", ""]
@@ -393,7 +402,7 @@ class TestDossierVisualizationBranches:
 
         with patch(
             "cfd.dashboard.pages.dossier._run_analysis",
-            return_value=(mock_result, AuthorData(profile=_profile(), publications=[], citations=[])),
+            return_value=(mock_result, author_data, mock_pipeline),
         ):
             render()
 
