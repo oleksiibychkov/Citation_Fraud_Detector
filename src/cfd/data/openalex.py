@@ -81,8 +81,8 @@ class OpenAlexStrategy(DataSourceStrategy):
         data_a: dict, data_b: dict, orcid: str, scopus_id: str,
     ) -> None:
         """Verify that ORCID and Scopus ID resolve to the same OpenAlex author."""
-        id_a = data_a.get("id", "")
-        id_b = data_b.get("id", "")
+        id_a = data_a.get("id") or ""
+        id_b = data_b.get("id") or ""
         if id_a and id_b and id_a != id_b:
             raise IdentityMismatchError(
                 f"ORCID {orcid} resolves to {id_a} but Scopus ID {scopus_id} "
@@ -121,31 +121,31 @@ class OpenAlexStrategy(DataSourceStrategy):
 
     def _parse_author(self, data: dict, surname: str) -> AuthorProfile:
         """Parse OpenAlex author response into AuthorProfile."""
-        openalex_id = data.get("id", "").replace("https://openalex.org/", "")
+        openalex_id = (data.get("id") or "").replace("https://openalex.org/", "")
 
         # Extract external IDs
-        ids = data.get("ids", {})
-        orcid = ids.get("orcid", "")
+        ids = data.get("ids") or {}
+        orcid = ids.get("orcid") or ""
         if orcid:
             orcid = orcid.replace("https://orcid.org/", "")
-        scopus_id = ids.get("scopus", "")
+        scopus_id = ids.get("scopus") or ""
         if scopus_id:
             scopus_id = scopus_id.replace("https://www.scopus.com/authid/detail.uri?authorId=", "")
 
         # Extract institution
-        affiliations = data.get("affiliations", [])
+        affiliations = data.get("affiliations") or []
         institution = None
         if affiliations:
-            inst = affiliations[0].get("institution", {})
+            inst = affiliations[0].get("institution") or {}
             institution = inst.get("display_name")
 
         # Name variants
-        display_name = data.get("display_name", "")
-        alternatives = data.get("display_name_alternatives", [])
+        display_name = data.get("display_name") or ""
+        alternatives = data.get("display_name_alternatives") or []
         variants = [display_name] + alternatives if display_name else alternatives
 
         # Summary stats
-        summary = data.get("summary_stats", {})
+        summary = data.get("summary_stats") or {}
 
         return AuthorProfile(
             scopus_id=scopus_id or None,
@@ -207,7 +207,7 @@ class OpenAlexStrategy(DataSourceStrategy):
 
     def _parse_publication(self, work: dict) -> Publication | None:
         """Parse an OpenAlex work into a Publication."""
-        work_id = work.get("id", "").replace("https://openalex.org/", "")
+        work_id = (work.get("id") or "").replace("https://openalex.org/", "")
         if not work_id:
             return None
 
@@ -237,9 +237,11 @@ class OpenAlexStrategy(DataSourceStrategy):
             abstract=abstract,
             publication_date=pub_date,
             journal=journal,
-            citation_count=work.get("cited_by_count", 0),
+            citation_count=work.get("cited_by_count") or 0,
             references_list=[
-                ref.replace("https://openalex.org/", "") for ref in (work.get("referenced_works") or [])
+                ref.replace("https://openalex.org/", "")
+                for ref in (work.get("referenced_works") or [])
+                if ref is not None
             ],
             co_authors=co_authors,
             source_api="openalex",
@@ -250,16 +252,16 @@ class OpenAlexStrategy(DataSourceStrategy):
     def _extract_co_authors(work: dict) -> list[dict]:
         """Extract co-author info from OpenAlex authorships field."""
         co_authors = []
-        for authorship in work.get("authorships", []):
-            author_obj = authorship.get("author", {})
-            author_id = author_obj.get("id", "").replace("https://openalex.org/", "")
-            institutions = authorship.get("institutions", [])
+        for authorship in work.get("authorships") or []:
+            author_obj = authorship.get("author") or {}
+            author_id = (author_obj.get("id") or "").replace("https://openalex.org/", "")
+            institutions = authorship.get("institutions") or []
             institution_name = institutions[0].get("display_name") if institutions else None
             co_authors.append({
                 "author_id": author_id,
-                "display_name": author_obj.get("display_name", ""),
+                "display_name": author_obj.get("display_name") or "",
                 "institution": institution_name,
-                "position": authorship.get("author_position", "middle"),
+                "position": authorship.get("author_position") or "middle",
             })
         return co_authors
 
@@ -326,8 +328,8 @@ class OpenAlexStrategy(DataSourceStrategy):
                 logger.warning("Failed to fetch citing works for %s", pub.work_id, exc_info=True)
                 break
 
-            for citing_work in data.get("results", []):
-                citing_id = citing_work.get("id", "").replace("https://openalex.org/", "")
+            for citing_work in data.get("results") or []:
+                citing_id = (citing_work.get("id") or "").replace("https://openalex.org/", "")
                 if not citing_id:
                     continue
 
@@ -365,9 +367,9 @@ class OpenAlexStrategy(DataSourceStrategy):
     @staticmethod
     def _is_self_citation(citing_work: dict, author: AuthorProfile) -> bool:
         """Check if a citing work is a self-citation."""
-        for authorship in citing_work.get("authorships", []):
-            author_obj = authorship.get("author", {})
-            citing_author_id = author_obj.get("id", "").replace("https://openalex.org/", "")
+        for authorship in citing_work.get("authorships") or []:
+            author_obj = authorship.get("author") or {}
+            citing_author_id = (author_obj.get("id") or "").replace("https://openalex.org/", "")
             if citing_author_id and citing_author_id == author.openalex_id:
                 return True
         return False
