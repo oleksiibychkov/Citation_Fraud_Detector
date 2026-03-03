@@ -1,0 +1,31 @@
+services:
+  # FastAPI REST API with Swagger UI at /api/docs
+  - type: web
+    name: cfd-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: CFD_SUPABASE_URL
+        sync: false
+      - key: CFD_SUPABASE_KEY
+        sync: false
+      - key: CFD_API_KEYS
+        value: demo-test-key-2024
+      - key: CFD_API_CORS_ORIGINS
+        value: "*"
+      - key: CFD_DEFAULT_LANGUAGE
+        value: ua
+    healthCheckPath: /health
+
+  # Streamlit Interactive Dashboard
+  - type: web
+    name: cfd-dashboard
+    runtime: docker
+    dockerfilePath: ./Dockerfile.dashboard
+    envVars:
+      - key: CFD_SUPABASE_URL
+        sync: false
+      - key: CFD_SUPABASE_KEY
+        sync: false
+      - key: CFD_DEFAULT_LANGUAGE
+        value: ua
