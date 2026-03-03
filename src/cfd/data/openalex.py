@@ -90,22 +90,34 @@ class OpenAlexStrategy(DataSourceStrategy):
             )
 
     def _fetch_by_orcid(self, orcid: str) -> dict | None:
-        params = self._params({"filter": f"orcid:{orcid}"})
-        data = self._http.get(f"{BASE_URL}/authors", params=params, source_api="openalex")
-        results = data.get("results", [])
-        return results[0] if results else None
+        try:
+            params = self._params({"filter": f"orcid:{orcid}"})
+            data = self._http.get(f"{BASE_URL}/authors", params=params, source_api="openalex")
+            results = data.get("results", [])
+            return results[0] if results else None
+        except Exception:
+            logger.warning("Failed to fetch author by ORCID %s", orcid, exc_info=True)
+            return None
 
     def _fetch_by_scopus_id(self, scopus_id: str) -> dict | None:
-        params = self._params({"filter": f"ids.scopus:{scopus_id}"})
-        data = self._http.get(f"{BASE_URL}/authors", params=params, source_api="openalex")
-        results = data.get("results", [])
-        return results[0] if results else None
+        try:
+            params = self._params({"filter": f"ids.scopus:{scopus_id}"})
+            data = self._http.get(f"{BASE_URL}/authors", params=params, source_api="openalex")
+            results = data.get("results", [])
+            return results[0] if results else None
+        except Exception:
+            logger.warning("Failed to fetch author by Scopus ID %s", scopus_id, exc_info=True)
+            return None
 
     def _fetch_by_name(self, name: str) -> dict | None:
-        params = self._params({"search": name})
-        data = self._http.get(f"{BASE_URL}/authors", params=params, source_api="openalex")
-        results = data.get("results", [])
-        return results[0] if results else None
+        try:
+            params = self._params({"search": name})
+            data = self._http.get(f"{BASE_URL}/authors", params=params, source_api="openalex")
+            results = data.get("results", [])
+            return results[0] if results else None
+        except Exception:
+            logger.warning("Failed to fetch author by name %s", name, exc_info=True)
+            return None
 
     def _parse_author(self, data: dict, surname: str) -> AuthorProfile:
         """Parse OpenAlex author response into AuthorProfile."""
