@@ -30,17 +30,21 @@ def _safe_int(val) -> int | None:
 class ScopusStrategy(DataSourceStrategy):
     """Data source strategy for Scopus API."""
 
-    def __init__(self, http_client: CachedHttpClient, api_key: str):
+    def __init__(self, http_client: CachedHttpClient, api_key: str, insttoken: str = ""):
         if not api_key:
             raise ValidationError("Scopus API key is required")
         self._http = http_client
         self._api_key = api_key
+        self._insttoken = insttoken
 
     def _headers(self) -> dict:
-        return {
+        headers = {
             "X-ELS-APIKey": self._api_key,
             "Accept": "application/json",
         }
+        if self._insttoken:
+            headers["X-ELS-Insttoken"] = self._insttoken
+        return headers
 
     def fetch_author(
         self,

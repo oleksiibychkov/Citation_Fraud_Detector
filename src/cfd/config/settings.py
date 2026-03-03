@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     # Scopus API (optional)
     scopus_api_key: str = ""
+    scopus_insttoken: str = ""
 
     # Analysis thresholds
     min_publications: int = 10

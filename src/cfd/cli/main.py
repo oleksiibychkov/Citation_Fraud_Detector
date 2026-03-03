@@ -36,7 +36,7 @@ def _build_strategy(source: str, settings: Settings):
 
         rate_limiter = RateLimiter(settings.scopus_requests_per_second)
         http_client = CachedHttpClient(supabase_client, rate_limiter, settings.cache_ttl_days)
-        return ScopusStrategy(http_client, settings.scopus_api_key)
+        return ScopusStrategy(http_client, settings.scopus_api_key, settings.scopus_insttoken)
 
     if source == "openalex":
         from cfd.data.openalex import OpenAlexStrategy
@@ -58,7 +58,7 @@ def _build_strategy(source: str, settings: Settings):
 
         rate_limiter_sc = RateLimiter(settings.scopus_requests_per_second)
         http_sc = CachedHttpClient(supabase_client, rate_limiter_sc, settings.cache_ttl_days)
-        secondary = ScopusStrategy(http_sc, settings.scopus_api_key)
+        secondary = ScopusStrategy(http_sc, settings.scopus_api_key, settings.scopus_insttoken)
         return FallbackStrategy(primary, secondary)
 
     return primary
