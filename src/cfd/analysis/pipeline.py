@@ -39,7 +39,7 @@ from cfd.graph.metrics import (
 )
 from cfd.graph.mutual import build_mutual_graph
 from cfd.graph.scoring import DEFAULT_WEIGHTS, compute_fraud_score
-from cfd.graph.theorems import TheoremResult, run_hierarchy
+from cfd.graph.theorems import TheoremResult, compute_mutual_index, run_hierarchy
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,8 @@ class AnalysisPipeline:
 
         # Step 5b: New indicators (RLA, GIC)
         indicators.append(compute_rla(author_data))
-        indicators.append(compute_gic(author_data))
+        gic_baseline = get_baseline(author_data.profile.discipline)
+        indicators.append(compute_gic(author_data, baseline=gic_baseline))
 
         # Step 5c: Extended centrality via graph engine
         engine = self._select_engine(citation_graph)
@@ -196,12 +197,26 @@ class AnalysisPipeline:
         if engine is not None:
             try:
                 subset = author_work_ids & set(citation_graph.nodes) if citation_graph is not None else set()
-                # μ_s = author's SCR value
-                scr_ind = next((i for i in indicators if i.indicator_type == "SCR"), None)
-                mu_s = scr_ind.value if scr_ind else 0.0
-                # Use discipline defaults (can be refined with real data)
-                mu_d = 0.15  # typical discipline mean SCR
-                sigma_d = 0.10  # typical discipline std
+                # μ(S) = mutual index of the author subgraph (Def. 6.6)
+                # Use author-level graph (mutual_graph engine) for mutual index
+                # but T1 acyclicity check needs directed graph (engine)
+                mu_s = 0.0
+                if mutual_graph is not None and len(mutual_graph.nodes) >= 2:
+                    from cfd.graph.engine import NetworkXEngine as _NXE
+                    # Compute mutual index on the directed author graph
+                    # Build directed author graph from citations
+                    from cfd.graph.builder import build_author_graph
+                    author_digraph = build_author_graph(author_data.citations)
+                    if len(author_digraph.nodes) >= 2:
+                        author_engine = _NXE(author_digraph)
+                        author_subset = set(author_digraph.nodes)
+                        mu_s = compute_mutual_index(author_engine, author_subset)
+                # Discipline baseline for mutual index (empirical estimates)
+                baseline = get_baseline(author_data.profile.discipline)
+                mu_d = baseline.avg_scr * 0.5  # mutual index baseline ~half of SCR baseline
+                sigma_d = baseline.std_scr * 0.5
+                if sigma_d <= 0:
+                    sigma_d = 0.05  # safe fallback
                 theorem_results = run_hierarchy(
                     engine, subset, mu_s, mu_d, sigma_d,
                     clique_results,
@@ -218,10 +233,15 @@ class AnalysisPipeline:
                 author_data, baseline,
                 cv_threshold=self._settings.cv_threshold,
             ))
+            # Cross-check SBD with CB and TA (§8.1.12)
+            cb_ind = next((i for i in indicators if i.indicator_type == "CB"), None)
+            ta_ind = next((i for i in indicators if i.indicator_type == "TA"), None)
             indicators.append(compute_sbd(
                 author_data,
                 beauty_threshold=self._settings.sbd_beauty_threshold,
                 suspicious_threshold=self._settings.sbd_suspicious_threshold,
+                cb_result=cb_ind,
+                ta_result=ta_ind,
             ))
         except Exception:
             logger.warning("Temporal indicators (CV/SBD) failed", exc_info=True)
@@ -238,15 +258,6 @@ class AnalysisPipeline:
             warnings.append("ANA computation failed")
 
         try:
-            indicators.append(compute_cc(
-                author_data,
-                per_paper_threshold=self._settings.cc_per_paper_threshold,
-            ))
-        except Exception:
-            logger.warning("CC computation failed", exc_info=True)
-            warnings.append("CC computation failed")
-
-        try:
             indicators.append(compute_ssd(
                 author_data,
                 similarity_threshold=self._settings.ssd_similarity_threshold,
@@ -256,7 +267,20 @@ class AnalysisPipeline:
             logger.warning("SSD computation failed", exc_info=True)
             warnings.append("SSD computation failed")
 
+        # CC must run after SSD for cross-check (§8.1.15)
         try:
+            ssd_ind = next((i for i in indicators if i.indicator_type == "SSD"), None)
+            indicators.append(compute_cc(
+                author_data,
+                per_paper_threshold=self._settings.cc_per_paper_threshold,
+                ssd_result=ssd_ind,
+            ))
+        except Exception:
+            logger.warning("CC computation failed", exc_info=True)
+            warnings.append("CC computation failed")
+
+        try:
+            pb_indicator_map = {ind.indicator_type: ind for ind in indicators}
             indicators.append(compute_pb(
                 author_data,
                 peer_repo=self._peer_repo,
@@ -264,6 +288,7 @@ class AnalysisPipeline:
                 k=self._settings.pb_k_neighbors,
                 min_peers=self._settings.pb_min_peers,
                 author_id=author_id,
+                indicator_results=pb_indicator_map,
             ))
         except Exception:
             logger.warning("PB computation failed", exc_info=True)

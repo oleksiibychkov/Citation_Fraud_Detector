@@ -3,9 +3,10 @@
 Theorem 1 (Acyclicity Filter): If a citation subgraph is acyclic, it cannot
     contain citation rings → stop (no fraud evidence from structure).
 
-Theorem 2 (Statistical Test - Cantelli Inequality): If mean self-citation rate μ_s
-    deviates from the discipline mean μ_d by more than z standard deviations,
-    then P(deviation by chance) ≤ 1/(1 + z²).
+Theorem 2 (Statistical Test - Cantelli Inequality): If mutual index μ(S) of
+    author group S deviates from the discipline mean μ_D by more than z standard
+    deviations, then P(deviation by chance) ≤ 1/(1 + z²).
+    μ(S) = |mutual pairs| / |connected pairs| (Def. 6.6 of the spec).
 
 Theorem 3 (Structural Test): If significant k-cliques (k ≥ 5) are found in the
     mutual citation graph, structural fraud evidence exists.
@@ -16,6 +17,7 @@ Hierarchy: T1 (acyclic → stop) → T2 (not significant → stop) → T3
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
@@ -58,6 +60,36 @@ def theorem1_acyclicity_filter(engine: GraphEngine, subset: set[Any]) -> Theorem
     )
 
 
+def compute_mutual_index(engine: GraphEngine, subset: set[Any]) -> float:
+    """Compute mutual index μ(S) for a subset of authors (Def. 6.6).
+
+    μ(S) = |{(a,b) : both (a→b) and (b→a) exist}| / |{(a,b) : (a→b) or (b→a) exist}|
+
+    i.e. fraction of connected pairs that have mutual citation.
+    Works on the author-level directed graph.
+    """
+    if len(subset) < 2:
+        return 0.0
+
+    mutual_pairs = 0
+    connected_pairs = 0
+    nodes = list(subset)
+
+    for i in range(len(nodes)):
+        for j in range(i + 1, len(nodes)):
+            a, b = nodes[i], nodes[j]
+            a_to_b = engine.has_edge(a, b)
+            b_to_a = engine.has_edge(b, a)
+            if a_to_b or b_to_a:
+                connected_pairs += 1
+                if a_to_b and b_to_a:
+                    mutual_pairs += 1
+
+    if connected_pairs == 0:
+        return 0.0
+    return mutual_pairs / connected_pairs
+
+
 def theorem2_statistical_test(
     mu_s: float,
     mu_d: float,
@@ -66,10 +98,10 @@ def theorem2_statistical_test(
 ) -> TheoremResult:
     """Theorem 2: Cantelli inequality-based statistical test.
 
-    Tests if the author's self-citation rate μ_s significantly deviates
-    from the discipline mean μ_d.
+    Tests if the group mutual index μ(S) significantly deviates
+    from the discipline mean μ_D (Def. 6.10).
 
-    z = |μ_s - μ_d| / σ_d
+    z = (μ(S) - μ_D) / σ_D   (one-sided: only excess matters)
     P(deviation ≥ z·σ) ≤ 1 / (1 + z²)  (Cantelli / one-sided Chebyshev)
 
     passed=True if z > z_threshold (statistically significant).
@@ -81,8 +113,9 @@ def theorem2_statistical_test(
             details={"status": "zero_std", "mu_s": mu_s, "mu_d": mu_d},
         )
 
-    z = abs(mu_s - mu_d) / sigma_d
-    cantelli_prob = 1.0 / (1.0 + z * z)
+    # One-sided test: only excess mutual index is suspicious
+    z = (mu_s - mu_d) / sigma_d
+    cantelli_prob = 1.0 / (1.0 + z * z) if z > 0 else 1.0
     passed = z > z_threshold
 
     return TheoremResult(

@@ -13,11 +13,14 @@ logger = logging.getLogger(__name__)
 def compute_cc(
     author_data: AuthorData,
     per_paper_threshold: float = 0.50,
+    ssd_result: "IndicatorResult | None" = None,
 ) -> IndicatorResult:
-    """Citation Cannibalism: detect excessive self-citation in references.
+    """Citation Cannibalism (§8.1.15): detect excessive self-citation in references.
 
     CC(paper) = self_citations_in_references / total_references.
     Aggregate: fraction of papers where CC(paper) > threshold.
+
+    Cross-check with SSD (§8.1.15): "if high text similarity + high CC = double signal".
 
     Returns IndicatorResult("CC", value, details).
     """
@@ -47,7 +50,16 @@ def compute_cc(
     max_cc = max(cc_values)
 
     # Normalize: fraction of flagged papers, capped [0, 1]
-    value = min(max(flagged / total_evaluated, 0.0), 1.0)
+    base_value = min(max(flagged / total_evaluated, 0.0), 1.0)
+
+    # Cross-check with SSD (§8.1.15): double signal boost
+    ssd_boost = 0.0
+    ssd_correlated = False
+    if ssd_result is not None and ssd_result.value > 0.3 and base_value > 0.2:
+        ssd_boost = 0.15
+        ssd_correlated = True
+
+    value = min(base_value + ssd_boost, 1.0)
 
     return IndicatorResult(
         indicator_type="CC",
@@ -58,6 +70,8 @@ def compute_cc(
             "flagged_count": flagged,
             "total_evaluated": total_evaluated,
             "per_paper_threshold": per_paper_threshold,
+            "ssd_correlated": ssd_correlated,
+            "ssd_boost": round(ssd_boost, 4),
             "top_papers": sorted(per_paper, key=lambda p: p["cc"], reverse=True)[:5],
         },
     )

@@ -42,6 +42,9 @@ def compute_ssd(
     # Find publication series by date + title
     series_pairs = _find_publication_series(pubs, interval_days)
 
+    # Check for abnormally small publications (§8.1.14)
+    small_pub_ids = _find_small_publications(pubs)
+
     # Collect all suspicious paper IDs
     suspicious_ids: set[str] = set()
     for pair in similar_pairs:
@@ -50,6 +53,7 @@ def compute_ssd(
     for pair in series_pairs:
         suspicious_ids.add(pair["work_id_a"])
         suspicious_ids.add(pair["work_id_b"])
+    suspicious_ids.update(small_pub_ids)
 
     # Normalize
     value = min(max(len(suspicious_ids) / len(pubs), 0.0), 1.0)
@@ -60,6 +64,7 @@ def compute_ssd(
         details={
             "similar_pairs": similar_pairs[:10],
             "publication_series": series_pairs[:10],
+            "small_publications": len(small_pub_ids),
             "suspicious_paper_count": len(suspicious_ids),
             "total_papers": len(pubs),
             "similarity_threshold": similarity_threshold,
@@ -154,3 +159,33 @@ def _title_jaccard(title_a: str | None, title_b: str | None) -> float:
     intersection = words_a & words_b
     union = words_a | words_b
     return len(intersection) / len(union)
+
+
+def _find_small_publications(publications: list[Publication]) -> set[str]:
+    """Detect abnormally small publications (§8.1.14).
+
+    Uses reference list size as proxy for publication volume.
+    Papers with very few references (< median/3) are flagged as potentially
+    minimal publishable units (salami slicing).
+    """
+    ref_sizes = []
+    for pub in publications:
+        if pub.references_list is not None:
+            ref_sizes.append((pub.work_id, len(pub.references_list)))
+
+    if len(ref_sizes) < 5:
+        return set()
+
+    sizes = sorted(s for _, s in ref_sizes)
+    median_size = sizes[len(sizes) // 2]
+
+    if median_size < 5:
+        return set()  # can't meaningfully detect small papers
+
+    threshold = max(3, median_size // 3)
+    small_ids = set()
+    for work_id, size in ref_sizes:
+        if size < threshold:
+            small_ids.add(work_id)
+
+    return small_ids

@@ -389,10 +389,13 @@ def _extract_counts_by_year(author_data: AuthorData) -> Counter:
 
 
 def compute_hta(author_data: AuthorData) -> IndicatorResult:
-    """h-Index Temporal Analysis: analyze h(t) growth rate.
+    """h-Index Temporal Analysis (§8.1.5): analyze h(t) growth rate.
 
-    Enhanced (Stage 3): reconstructs h(t) over time, computes dh/dt vs dN/dt
-    correlation, and detects anomalous growth uncorrelated with publications.
+    Three sub-components per spec:
+    1. Growth Rate: dh/dt analysis over time
+    2. Price's Law: detect old papers suddenly receiving new citations
+       (citation farming signal if papers >5 years old get recent citation bursts)
+    3. h(t) vs N(t) correlation: decorrelation = suspicious
     """
     yearly_counts = _extract_counts_by_year(author_data)
     if len(yearly_counts) < 3:
@@ -401,13 +404,12 @@ def compute_hta(author_data: AuthorData) -> IndicatorResult:
     years = sorted(yearly_counts.keys())
     values = [yearly_counts[y] for y in years]
 
-    # Compute year-over-year citation growth rates
+    # Sub-check 1: Year-over-year citation growth rates
     growth_rates = []
     for i in range(1, len(values)):
         if values[i - 1] > 0:
             growth_rates.append((values[i] - values[i - 1]) / values[i - 1])
         else:
-            # 0→nonzero is highly anomalous; use the raw value as a proxy
             growth_rates.append(float(values[i]) if values[i] > 0 else 0.0)
 
     if not growth_rates:
@@ -420,37 +422,39 @@ def compute_hta(author_data: AuthorData) -> IndicatorResult:
     max_growth = float(np.max(growth_arr))
     max_z = (max_growth - mean_growth) / std_growth if std_growth > 0 else 0.0
 
-    # Build publication count by year (N(t))
+    # Sub-check 2: Price's Law — old papers getting recent citations
+    prices_law_score, prices_law_details = _check_prices_law(author_data, years)
+
+    # Sub-check 3: h(t) vs N(t) correlation
     pub_yearly: Counter = Counter()
     for pub in author_data.publications:
         if pub.publication_date:
             pub_yearly[pub.publication_date.year] += 1
 
-    # Compute h(t) vs N(t) correlation
     h_n_correlation = None
+    effective_z = max_z
     if pub_yearly and len(pub_yearly) >= 3:
         common_years = sorted(set(years) & set(pub_yearly.keys()))
         if len(common_years) >= 3:
             cit_vals = np.array([values[years.index(y)] for y in common_years], dtype=float)
             pub_vals = np.array([pub_yearly[y] for y in common_years], dtype=float)
-            # Cumulative for h-proxy: approximate h(t) as cumulative citations / cumulative pubs
             cum_cit = np.cumsum(cit_vals)
             cum_pub = np.cumsum(pub_vals)
             if np.std(cum_pub) > 0 and np.std(cum_cit) > 0:
                 corr = float(np.corrcoef(cum_cit, cum_pub)[0, 1])
                 h_n_correlation = round(corr, 4)
-                # Low correlation with high growth = suspicious
-                effective_z = max_z * 1.2 if corr < 0.5 and max_z > 3.0 else max_z
-            else:
-                effective_z = max_z
-        else:
-            effective_z = max_z
-    else:
-        effective_z = max_z
+                if corr < 0.5 and max_z > 3.0:
+                    effective_z = max_z * 1.2
 
-    # Normalize to [0, 1] — consistent with TA (z_threshold * 2)
+    # Combine: growth anomaly (50%) + Price's Law (25%) + decorrelation bonus (25%)
     z_threshold = 3.0
-    normalized = min(max(effective_z / (z_threshold * 2), 0.0), 1.0)
+    growth_normalized = min(max(effective_z / (z_threshold * 2), 0.0), 1.0)
+    decorrelation = 0.0
+    if h_n_correlation is not None and h_n_correlation < 0.5:
+        decorrelation = min((0.5 - h_n_correlation) / 0.5, 1.0)
+
+    normalized = 0.50 * growth_normalized + 0.25 * prices_law_score + 0.25 * decorrelation
+    normalized = min(max(normalized, 0.0), 1.0)
 
     details: dict = {
         "mean_growth_rate": round(mean_growth, 3),
@@ -458,11 +462,76 @@ def compute_hta(author_data: AuthorData) -> IndicatorResult:
         "max_z_score": round(effective_z, 3),
         "raw_max_z": round(max_z, 3),
         "years_analyzed": len(years),
+        "prices_law_score": round(prices_law_score, 4),
+        **prices_law_details,
     }
     if h_n_correlation is not None:
         details["h_n_correlation"] = h_n_correlation
+    details["decorrelation_score"] = round(decorrelation, 4)
 
     return IndicatorResult("HTA", normalized, details)
+
+
+def _check_prices_law(author_data: AuthorData, citation_years: list[int]) -> tuple[float, dict]:
+    """Price's Law check: old papers (>5 years) suddenly getting new citations.
+
+    Per §8.1.5: "If old papers suddenly receive new citations after 5-10 years
+    — sign of citation farming."
+
+    Returns (score ∈ [0,1], details).
+    """
+    if not citation_years:
+        return 0.0, {"prices_law_status": "no_years"}
+
+    current_year = citation_years[-1]
+    old_paper_revival_count = 0
+    total_old_papers = 0
+
+    for pub in author_data.publications:
+        if not pub.publication_date:
+            continue
+        paper_age = current_year - pub.publication_date.year
+        if paper_age < 5:
+            continue
+        total_old_papers += 1
+
+        # Check if this old paper got recent citations
+        if pub.raw_data:
+            counts_by_year = pub.raw_data.get("counts_by_year", [])
+            recent_cits = 0
+            old_avg = 0.0
+            old_years_count = 0
+            for entry in counts_by_year:
+                year = entry.get("year")
+                cited = entry.get("cited_by_count", 0)
+                if year is None:
+                    continue
+                if year >= current_year - 2:
+                    recent_cits += cited
+                elif year < current_year - 2:
+                    old_avg += cited
+                    old_years_count += 1
+
+            if old_years_count > 0:
+                old_avg /= old_years_count
+
+            # Old paper with sudden revival: recent >> historical average
+            if old_avg > 0 and recent_cits > old_avg * 3:
+                old_paper_revival_count += 1
+            elif old_avg == 0 and recent_cits > 5:
+                old_paper_revival_count += 1
+
+    if total_old_papers == 0:
+        return 0.0, {"prices_law_status": "no_old_papers"}
+
+    revival_ratio = old_paper_revival_count / total_old_papers
+    score = min(revival_ratio * 3.0, 1.0)  # 33%+ revival = max score
+
+    return score, {
+        "old_paper_revivals": old_paper_revival_count,
+        "total_old_papers": total_old_papers,
+        "revival_ratio": round(revival_ratio, 4),
+    }
 
 
 def compute_degree_centrality(g: nx.DiGraph, node_id: str) -> tuple[IndicatorResult, IndicatorResult]:

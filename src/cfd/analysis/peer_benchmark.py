@@ -18,11 +18,12 @@ def compute_pb(
     k: int = 10,
     min_peers: int = 3,
     author_id: int | None = None,
+    indicator_results: dict | None = None,
 ) -> IndicatorResult:
-    """Peer Benchmark: compare author metrics with k-NN matched peers.
+    """Peer Benchmark (§8.1.10): compare author metrics with k-NN matched peers.
 
     Matching: discipline + publication_count ±50% + career_start_year ±3.
-    Compare: h_index, citation_count, publication_count.
+    Compare (per spec): h_index, SCR, MCR, citation_velocity, citation_count, publication_count.
     Z-score deviation from peer median.
 
     Returns IndicatorResult("PB", value, details).
@@ -44,12 +45,18 @@ def compute_pb(
             details={"status": "insufficient_peers", "peer_count": len(peers), "min_required": min_peers},
         )
 
-    # Compute deviations
-    author_metrics = {
+    # Compute deviations — compare h_index, SCR, MCR, citation_velocity (§8.1.10)
+    author_metrics: dict[str, float] = {
         "h_index": author_data.profile.h_index or 0,
         "citation_count": author_data.profile.citation_count or 0,
         "publication_count": author_data.profile.publication_count or 0,
     }
+    # Add SCR, MCR, CV from indicator results if available
+    if indicator_results:
+        for key in ("SCR", "MCR", "CV"):
+            ind = indicator_results.get(key)
+            if ind is not None:
+                author_metrics[key.lower()] = ind.value
 
     deviations = _compute_peer_deviation(author_metrics, peers)
 
@@ -91,7 +98,10 @@ def _find_peers(
     peer_repo,
     k: int = 10,
 ) -> list[dict]:
-    """Find k nearest peers from already-analyzed authors in DB."""
+    """Find k nearest peers from already-analyzed authors in DB.
+
+    Matching criteria (§8.1.10): discipline + publication_count ±50% + career_start_year ±3.
+    """
     discipline = author_data.profile.discipline
     pub_count = author_data.profile.publication_count or 0
 
@@ -101,14 +111,27 @@ def _find_peers(
     min_pubs = max(1, int(pub_count * 0.5))
     max_pubs = int(pub_count * 1.5) + 1
 
+    # Derive career start year from earliest publication
+    career_start = None
+    for pub in author_data.publications:
+        if pub.publication_date:
+            year = pub.publication_date.year
+            if career_start is None or year < career_start:
+                career_start = year
+
     try:
         if hasattr(peer_repo, "find_peers"):
-            return peer_repo.find_peers(
-                discipline=discipline,
-                min_pubs=min_pubs,
-                max_pubs=max_pubs,
-                limit=k,
-            )
+            kwargs: dict = {
+                "discipline": discipline,
+                "min_pubs": min_pubs,
+                "max_pubs": max_pubs,
+                "limit": k,
+            }
+            # Pass career_start_year if the repo supports it
+            if career_start is not None:
+                kwargs["career_start_min"] = career_start - 3
+                kwargs["career_start_max"] = career_start + 3
+            return peer_repo.find_peers(**kwargs)
     except Exception:
         logger.warning("Peer search failed", exc_info=True)
 
@@ -122,7 +145,12 @@ def _compute_peer_deviation(
     """Compute Z-score deviation of author from peer median for each metric."""
     deviations = {}
 
-    for metric in ("h_index", "citation_count", "publication_count"):
+    all_metrics = ["h_index", "citation_count", "publication_count"]
+    # Add extended metrics if available in author_metrics
+    for extra in ("scr", "mcr", "cv"):
+        if extra in author_metrics:
+            all_metrics.append(extra)
+    for metric in all_metrics:
         peer_values = [p.get(metric, 0) or 0 for p in peers]
         if not peer_values:
             deviations[metric] = {"z_score": None, "peer_median": None, "peer_std": None}

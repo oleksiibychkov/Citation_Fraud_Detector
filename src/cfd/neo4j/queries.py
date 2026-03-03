@@ -93,6 +93,17 @@ class Neo4jQueries:
                 scores[record["author_id"]] = record["score"]
         return scores
 
+    def has_relationship(self, u: Any, v: Any) -> bool:
+        """Check if a directed CITES relationship exists from u to v."""
+        query = """
+        MATCH (a:Author {author_id: $u})-[:CITES]->(b:Author {author_id: $v})
+        RETURN count(*) > 0 AS exists
+        """
+        with self._driver.session() as session:
+            result = session.run(query, u=str(u), v=str(v))
+            record = result.single()
+            return bool(record and record["exists"])
+
     def _ensure_graph_projection(self, graph_name: str) -> None:
         """Create GDS graph projection if it doesn't exist."""
         check_query = "CALL gds.graph.exists($name) YIELD exists"

@@ -137,3 +137,11 @@ class IGraphEngine(GraphEngine):
 
     def node_count(self) -> int:
         return self._ig.vcount()
+
+    def has_edge(self, u, v) -> bool:
+        try:
+            uid = self._ig.vs.find(name=str(u)).index
+            vid = self._ig.vs.find(name=str(v)).index
+            return self._ig.are_connected(uid, vid)
+        except (ValueError, KeyError):
+            return False

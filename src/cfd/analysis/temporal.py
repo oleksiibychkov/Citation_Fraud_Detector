@@ -20,13 +20,15 @@ def _paper_citation_velocity(
     pub: Publication,
     baseline: DisciplineBaseline,
     current_year: int | None = None,
+    window_months: int = 24,
 ) -> float | None:
-    """Compute citation velocity for a single paper.
+    """Compute citation velocity for a single paper (§8.1.11).
 
-    CV_paper = (C_observed / C_expected) where C_expected accounts for:
-    - discipline average citations per paper
-    - paper age with exponential decay (half-life model)
-    - journal quartile normalization
+    CV_paper = C_early / C_expected, where:
+    - C_early = citations in the first N months (from counts_by_year when available)
+    - C_expected = expected for journal tier and discipline
+
+    Falls back to cumulative velocity when early-window data unavailable.
     """
     if not pub.publication_date:
         return None
@@ -36,15 +38,33 @@ def _paper_citation_velocity(
 
     age_years = current_year - pub.publication_date.year
     if age_years < 1:
-        return None  # too new to evaluate
+        return None
 
-    # Expected citations based on age and discipline half-life
+    # Try to compute early-window citations from counts_by_year
+    early_citations = None
+    window_years = max(1, window_months // 12)
+    pub_year = pub.publication_date.year
+
+    if pub.raw_data:
+        counts_by_year = pub.raw_data.get("counts_by_year", [])
+        if counts_by_year:
+            early_cits = 0
+            for entry in counts_by_year:
+                y = entry.get("year")
+                c = entry.get("cited_by_count", 0)
+                if y is not None and pub_year <= y <= pub_year + window_years:
+                    early_cits += c
+            if early_cits > 0 or age_years > window_years:
+                early_citations = early_cits
+
+    # Expected citations for early window based on discipline and journal
     half_life = baseline.citation_half_life_years
     if half_life <= 0:
         return None
-    # Cumulative expected citations: avg * (1 - 2^(-age/half_life)) / (1 - 2^(-1/half_life))
-    # Simplified: expected grows with age but saturates
-    decay_factor = 1.0 - math.pow(2.0, -age_years / half_life)
+
+    # Expected in early window (not cumulative)
+    early_window = min(window_years, age_years)
+    decay_factor = 1.0 - math.pow(2.0, -early_window / half_life)
     normalization = 1.0 - math.pow(2.0, -1.0 / half_life)
     expected = baseline.avg_citations_per_paper * (decay_factor / normalization) if normalization > 0 else 0.0
 
@@ -63,7 +83,16 @@ def _paper_citation_velocity(
     if adjusted_expected <= 0:
         return None
 
-    return pub.citation_count / adjusted_expected
+    # Use early citations if available, otherwise fall back to cumulative
+    if early_citations is not None:
+        return early_citations / adjusted_expected
+    else:
+        # Fallback: use total citations divided by full-age expected
+        full_decay = 1.0 - math.pow(2.0, -age_years / half_life)
+        full_expected = baseline.avg_citations_per_paper * (full_decay / normalization) * quartile_factor
+        if full_expected <= 0:
+            return None
+        return pub.citation_count / full_expected
 
 
 def compute_cv(
@@ -171,14 +200,16 @@ def compute_sbd(
     *,
     beauty_threshold: float = 100.0,
     suspicious_threshold: float = 0.3,
+    cb_result: "IndicatorResult | None" = None,
+    ta_result: "IndicatorResult | None" = None,
 ) -> IndicatorResult:
-    """Sleeping Beauty Detector: identify papers with delayed recognition.
+    """Sleeping Beauty Detector (§8.1.12): identify papers with delayed recognition.
 
     Uses Beauty Coefficient B (van Raan) to detect papers that were
     "sleeping" (low citations) then suddenly "awakened" (citation spike).
 
-    Cross-checks with CB and TA to distinguish legitimate delayed
-    recognition from suspicious manipulation.
+    Cross-checks with CB and TA (§8.1.12): if awakening correlates with
+    citation bottleneck or temporal spike → suspicious manipulation.
     """
     # Build per-paper citation timeline from raw_data counts_by_year
     paper_beauties: list[dict] = []
@@ -230,7 +261,24 @@ def compute_sbd(
     suspicious_ratio = high_beauty_count / len(author_data.publications) if author_data.publications else 0.0
 
     # Normalize: suspicious_threshold -> 0.5, suspicious_threshold*2 -> 1.0
-    normalized = min(max(suspicious_ratio / (suspicious_threshold * 2), 0.0), 1.0)
+    base_normalized = min(max(suspicious_ratio / (suspicious_threshold * 2), 0.0), 1.0)
+
+    # Cross-check with CB and TA (§8.1.12)
+    cross_check_boost = 0.0
+    cross_check_details: dict = {}
+    if high_beauty_count > 0:
+        # If awakening correlates with citation bottleneck → suspicious
+        if cb_result is not None and cb_result.value > 0.3:
+            cross_check_boost += 0.15
+            cross_check_details["cb_correlated"] = True
+            cross_check_details["cb_value"] = round(cb_result.value, 4)
+        # If awakening correlates with temporal spike → suspicious
+        if ta_result is not None and ta_result.value > 0.3:
+            cross_check_boost += 0.15
+            cross_check_details["ta_correlated"] = True
+            cross_check_details["ta_value"] = round(ta_result.value, 4)
+
+    normalized = min(base_normalized + cross_check_boost, 1.0)
 
     return IndicatorResult(
         "SBD",
@@ -241,6 +289,8 @@ def compute_sbd(
             "high_beauty_papers": high_beauty_count,
             "total_evaluated": len(paper_beauties),
             "suspicious_ratio": round(suspicious_ratio, 4),
+            "cross_check_boost": round(cross_check_boost, 4),
+            **cross_check_details,
             "top_papers": paper_beauties[:3],
         },
     )

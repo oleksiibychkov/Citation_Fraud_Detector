@@ -44,8 +44,12 @@ def compute_ana(
     # Sub-signal 3: collaboration diversity (inverted repeat rate)
     diversity_score = 1.0 - stats["repeat_collaboration_rate"]
 
+    # Sub-signal 4: thematic relevance anomaly (§8.1.8)
+    # Detect co-authors appearing in unrelated-topic publications
+    thematic_score = _thematic_relevance_score(author_data)
+
     # Weighted combination (all [0,1])
-    value = 0.4 * single_ratio + 0.3 * position_score + 0.3 * diversity_score
+    value = 0.30 * single_ratio + 0.25 * position_score + 0.25 * diversity_score + 0.20 * thematic_score
     value = min(max(value, 0.0), 1.0)
 
     return IndicatorResult(
@@ -55,6 +59,7 @@ def compute_ana(
             "single_paper_coauthor_ratio": round(single_ratio, 4),
             "position_anomaly_score": round(position_score, 4),
             "collaboration_diversity_score": round(diversity_score, 4),
+            "thematic_relevance_score": round(thematic_score, 4),
             **stats,
         },
     )
@@ -168,3 +173,56 @@ def _position_anomaly_score(stats: dict, author_data: AuthorData) -> float:
 
     # High middle ratio for prolific author = suspicious
     return min(max(middle_ratio - 0.3, 0.0) / 0.7, 1.0)
+
+
+def _thematic_relevance_score(author_data: AuthorData) -> float:
+    """Detect co-authors in publications without logical thematic connection (§8.1.8).
+
+    Uses OpenAlex concepts/topics to compute per-publication topic overlap
+    with the author's overall concept profile. Publications with many co-authors
+    but low topic overlap = potential gift/guest authorship.
+    Returns score ∈ [0, 1].
+    """
+    # Build author's concept profile from all publications
+    author_concepts: Counter[str] = Counter()
+    pub_concepts: dict[str, set[str]] = {}
+
+    for pub in author_data.publications:
+        concepts: set[str] = set()
+        if pub.raw_data:
+            for concept in pub.raw_data.get("concepts", []):
+                cid = concept.get("id", "")
+                if cid:
+                    concepts.add(cid)
+                    author_concepts[cid] += 1
+            for topic in pub.raw_data.get("topics", []):
+                tid = topic.get("id", "")
+                if tid:
+                    concepts.add(tid)
+                    author_concepts[tid] += 1
+        if concepts:
+            pub_concepts[pub.work_id] = concepts
+
+    if not author_concepts or len(pub_concepts) < 3:
+        return 0.0
+
+    # Top concepts = author's core topics (top 50% by frequency)
+    total_pubs = len(pub_concepts)
+    threshold_count = max(1, total_pubs * 0.2)
+    core_concepts = {cid for cid, count in author_concepts.items() if count >= threshold_count}
+
+    if not core_concepts:
+        return 0.0
+
+    # Check each publication's overlap with core concepts
+    low_overlap_count = 0
+    for work_id, concepts in pub_concepts.items():
+        overlap = len(concepts & core_concepts) / len(core_concepts) if core_concepts else 0
+        if overlap < 0.1:  # <10% overlap with author's core = thematically unrelated
+            low_overlap_count += 1
+
+    if total_pubs == 0:
+        return 0.0
+
+    # Fraction of publications with low thematic overlap
+    return min(low_overlap_count / total_pubs, 1.0)

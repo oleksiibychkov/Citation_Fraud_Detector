@@ -51,6 +51,22 @@ def compute_cpc(
     )
     total_metrics = sum(1 for d in divergences.values() if d["divergence"] is not None)
 
+    # Phantom publication detection (§8.1.13)
+    phantom_info: dict = {}
+    try:
+        secondary_pubs = _fetch_secondary_publications(author_data, secondary_strategy)
+        if secondary_pubs is not None:
+            phantom_info = fuzzy_publication_match(
+                author_data.publications, secondary_pubs,
+            )
+            # Unmatched publications boost the divergence score
+            unmatched_ratio = phantom_info.get("unmatched", 0) / max(phantom_info.get("total_primary", 1), 1)
+            if unmatched_ratio > 0.2:
+                divergent_count += 1
+                total_metrics += 1
+    except Exception:
+        logger.warning("Phantom publication check failed", exc_info=True)
+
     value = (divergent_count / total_metrics) if total_metrics > 0 else 0.0
     value = min(max(value, 0.0), 1.0)
 
@@ -64,6 +80,7 @@ def compute_cpc(
             "divergence_threshold": divergence_threshold,
             "primary_source": primary.source_api,
             "secondary_source": secondary_profile.source_api,
+            "phantom_publications": phantom_info,
         },
     )
 
@@ -82,6 +99,30 @@ def _fetch_secondary_profile(
     except Exception:
         logger.warning("Failed to fetch secondary profile", exc_info=True)
         return None
+
+
+def _fetch_secondary_publications(
+    author_data: AuthorData,
+    secondary_strategy,
+) -> list[Publication] | None:
+    """Fetch publications from secondary API for phantom publication check."""
+    try:
+        if hasattr(secondary_strategy, "collect"):
+            data = secondary_strategy.collect(
+                author_data.profile.surname,
+                scopus_id=author_data.profile.scopus_id,
+                orcid=author_data.profile.orcid,
+            )
+            return data.publications
+        if hasattr(secondary_strategy, "fetch_publications"):
+            return secondary_strategy.fetch_publications(
+                author_data.profile.surname,
+                scopus_id=author_data.profile.scopus_id,
+                orcid=author_data.profile.orcid,
+            )
+    except Exception:
+        logger.warning("Failed to fetch secondary publications", exc_info=True)
+    return None
 
 
 def _compute_metric_divergences(

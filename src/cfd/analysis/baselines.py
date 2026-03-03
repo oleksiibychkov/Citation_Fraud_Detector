@@ -118,14 +118,50 @@ def normalize_by_discipline(value: float, mean: float, std: float) -> float:
 
 
 def get_journal_quartile(journal_name: str | None, baseline: DisciplineBaseline) -> str:
-    """Determine journal quartile. Returns Q1/Q2/Q3/Q4, defaults to Q2 if unknown."""
+    """Determine journal quartile. Returns Q1/Q2/Q3/Q4, defaults to Q2 if unknown.
+
+    Uses expanded keyword heuristics covering major publishers and tiers.
+    In a production system this should be replaced by a journal classification database
+    (e.g., Scimago JR data, Scopus Source List, or OpenAlex source classification).
+    """
     if not journal_name:
         return "Q2"
-    # In a real system this would use a journal classification API/database.
-    # For now, use simple heuristics based on journal name patterns.
     jl = journal_name.lower()
-    if any(w in jl for w in ("nature", "science", "lancet", "cell", "nejm", "ieee trans")):
+
+    # Q1: top-tier journals and well-known high-impact series
+    q1_keywords = (
+        "nature", "science", "lancet", "cell", "nejm",
+        "new england journal", "jama", "bmj", "annals of",
+        "ieee transactions", "ieee journal", "acm computing surveys",
+        "proceedings of the national academy", "pnas",
+        "physical review letters", "angewandte chemie",
+        "journal of the american chemical", "advanced materials",
+        "chemical reviews", "reviews of modern physics",
+        "annual review", "nature review",
+    )
+    if any(w in jl for w in q1_keywords):
         return "Q1"
-    if any(w in jl for w in ("plos", "bmc", "frontiers", "ieee access")):
+
+    # Q2: solid mid-tier journals
+    q2_keywords = (
+        "plos one", "plos ", "bmc ", "frontiers in", "scientific reports",
+        "ieee access", "sensors", "applied sciences", "materials",
+        "journal of", "international journal",
+        "computers", "information sciences", "neurocomputing",
+    )
+    if any(w in jl for w in q2_keywords):
         return "Q2"
-    return "Q2"  # default
+
+    # Q4: known predatory/low-impact indicators
+    q4_keywords = (
+        "preprint", "arxiv", "ssrn", "working paper",
+        "advances in", "recent patents",
+    )
+    if any(w in jl for w in q4_keywords):
+        return "Q4"
+
+    # Q3: everything else that has a recognizable journal name
+    if len(jl) > 5:
+        return "Q3"
+
+    return "Q2"  # very short names default to Q2

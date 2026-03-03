@@ -77,8 +77,9 @@ class TestGetJournalQuartile:
     def test_plos_is_q2(self):
         assert get_journal_quartile("PLOS ONE", DisciplineBaseline("test", 0.1, 0.1)) == "Q2"
 
-    def test_unknown_defaults_q2(self):
-        assert get_journal_quartile("Unknown Journal", DisciplineBaseline("test", 0.1, 0.1)) == "Q2"
+    def test_unknown_defaults_q3(self):
+        # Unknown journals with recognizable names default to Q3
+        assert get_journal_quartile("Unknown Journal", DisciplineBaseline("test", 0.1, 0.1)) == "Q3"
 
     def test_none_defaults_q2(self):
         assert get_journal_quartile(None, DisciplineBaseline("test", 0.1, 0.1)) == "Q2"

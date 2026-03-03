@@ -51,6 +51,11 @@ class GraphEngine(abc.ABC):
     @abc.abstractmethod
     def node_count(self) -> int: ...
 
+    @abc.abstractmethod
+    def has_edge(self, u: Any, v: Any) -> bool:
+        """Check if a directed edge u→v exists."""
+        ...
+
 
 class NetworkXEngine(GraphEngine):
     """Pure NetworkX implementation of graph operations."""
@@ -147,6 +152,9 @@ class NetworkXEngine(GraphEngine):
 
     def node_count(self) -> int:
         return len(self._g.nodes)
+
+    def has_edge(self, u: Any, v: Any) -> bool:
+        return self._g.has_edge(u, v)
 
 
 def select_engine(graph: nx.DiGraph | nx.Graph, threshold: int = 50_000) -> GraphEngine:

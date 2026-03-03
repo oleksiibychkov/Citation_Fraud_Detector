@@ -84,5 +84,12 @@ class Neo4jEngine(GraphEngine):
     def average_edge_probability(self) -> float:
         return 0.0
 
+    def has_edge(self, u: Any, v: Any) -> bool:
+        try:
+            return self._queries.has_relationship(u, v)
+        except Exception:
+            logger.warning("Neo4j has_edge check failed", exc_info=True)
+            return False
+
     def node_count(self) -> int:
         return 0
