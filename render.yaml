@@ -3,7 +3,9 @@ services:
   - type: web
     name: cfd-api
     runtime: docker
-    dockerfilePath: ./Dockerfile
+    plan: free
+    branch: main
+    dockerfilePath: Dockerfile
     envVars:
       - key: CFD_SUPABASE_URL
         sync: false
@@ -21,7 +23,9 @@ services:
   - type: web
     name: cfd-dashboard
     runtime: docker
-    dockerfilePath: ./Dockerfile.dashboard
+    plan: free
+    branch: main
+    dockerfilePath: Dockerfile.dashboard
     envVars:
       - key: CFD_SUPABASE_URL
         sync: false
