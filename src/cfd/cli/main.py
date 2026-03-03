@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -226,7 +227,8 @@ def batch(ctx, batch_file, source, output_dir):
             format_results_table(result)
 
             # Export individual report
-            report_file = output_path / f"{entry.surname}_{entry.scopus_id or entry.orcid}.json"
+            safe_surname = re.sub(r'[^\w\-]', '_', entry.surname)
+            report_file = output_path / f"{safe_surname}_{entry.scopus_id or entry.orcid}.json"
             export_to_json(result, report_file, settings)
 
         except CFDError as e:

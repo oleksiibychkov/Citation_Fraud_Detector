@@ -40,6 +40,8 @@ def _paper_citation_velocity(
 
     # Expected citations based on age and discipline half-life
     half_life = baseline.citation_half_life_years
+    if half_life <= 0:
+        return None
     # Cumulative expected citations: avg * (1 - 2^(-age/half_life)) / (1 - 2^(-1/half_life))
     # Simplified: expected grows with age but saturates
     decay_factor = 1.0 - math.pow(2.0, -age_years / half_life)

@@ -34,7 +34,7 @@ def check_surname_match(input_surname: str, api_name: str) -> tuple[bool, str]:
     Returns (matches, warning_message). Case-insensitive comparison.
     """
     if not api_name:
-        return True, ""
+        return False, "API returned empty name"
 
     input_lower = input_surname.lower().strip()
     api_lower = api_name.lower().strip()

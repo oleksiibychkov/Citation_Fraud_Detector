@@ -35,8 +35,9 @@ class TestSendScoreChangeEmail:
         assert call_args[0][0] == "cfd-alerts@localhost"
         assert call_args[0][1] == ["admin@example.com"]
         assert "Ivanenko" in call_args[0][2]
-        # starttls/login should NOT be called when no credentials
-        mock_server.starttls.assert_not_called()
+        # starttls is always called for non-SSL ports (security fix)
+        mock_server.starttls.assert_called_once()
+        # login should NOT be called when no credentials
         mock_server.login.assert_not_called()
 
     @patch("cfd.notifications.email.smtplib.SMTP")

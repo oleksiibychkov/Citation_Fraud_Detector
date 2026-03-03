@@ -47,7 +47,7 @@ def send_score_change_email(
         else:
             ctx = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
         with ctx as server:
-            if smtp_port not in (25, 465):
+            if smtp_port != 465:
                 server.starttls()
             if smtp_user and smtp_password:
                 server.login(smtp_user, smtp_password)

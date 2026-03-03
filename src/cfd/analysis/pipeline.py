@@ -171,6 +171,7 @@ class AnalysisPipeline:
                 ))
             except Exception:
                 logger.warning("Community detection failed", exc_info=True)
+                warnings.append("Community detection failed")
 
         # Step 5e: Mutual graph + clique detection
         clique_results = []
@@ -189,6 +190,7 @@ class AnalysisPipeline:
                 indicators.append(clique_to_indicator(clique_results))
         except Exception:
             logger.warning("Clique detection failed", exc_info=True)
+            warnings.append("Clique detection failed")
 
         # Step 5f: Theorem hierarchy
         theorem_results: list[TheoremResult] = []
@@ -208,6 +210,7 @@ class AnalysisPipeline:
                 )
             except Exception:
                 logger.warning("Theorem hierarchy failed", exc_info=True)
+                warnings.append("Theorem hierarchy failed")
 
         # Step 5g: Citation Velocity + Sleeping Beauty
         try:
@@ -223,6 +226,7 @@ class AnalysisPipeline:
             ))
         except Exception:
             logger.warning("Temporal indicators (CV/SBD) failed", exc_info=True)
+            warnings.append("Temporal indicators (CV/SBD) failed")
 
         # Step 5i: Stage 5 indicators (ANA, CC, SSD, PB, CPC)
         try:
@@ -232,6 +236,7 @@ class AnalysisPipeline:
             ))
         except Exception:
             logger.warning("ANA computation failed", exc_info=True)
+            warnings.append("ANA computation failed")
 
         try:
             indicators.append(compute_cc(
@@ -240,6 +245,7 @@ class AnalysisPipeline:
             ))
         except Exception:
             logger.warning("CC computation failed", exc_info=True)
+            warnings.append("CC computation failed")
 
         try:
             indicators.append(compute_ssd(
@@ -249,6 +255,7 @@ class AnalysisPipeline:
             ))
         except Exception:
             logger.warning("SSD computation failed", exc_info=True)
+            warnings.append("SSD computation failed")
 
         try:
             indicators.append(compute_pb(
@@ -261,6 +268,7 @@ class AnalysisPipeline:
             ))
         except Exception:
             logger.warning("PB computation failed", exc_info=True)
+            warnings.append("PB computation failed")
 
         try:
             indicators.append(compute_cpc(
@@ -270,17 +278,20 @@ class AnalysisPipeline:
             ))
         except Exception:
             logger.warning("CPC computation failed", exc_info=True)
+            warnings.append("CPC computation failed")
 
         # Step 5j: Journal-level indicators (§3.7)
         try:
             indicators.append(compute_jscr(author_data))
         except Exception:
             logger.warning("JSCR computation failed", exc_info=True)
+            warnings.append("JSCR computation failed")
 
         try:
             indicators.append(detect_coercive_citations(author_data))
         except Exception:
             logger.warning("COERCE detection failed", exc_info=True)
+            warnings.append("COERCE detection failed")
 
         # Step 5h: Contextual Anomaly Analysis (must run after all other indicators)
         try:
@@ -292,6 +303,7 @@ class AnalysisPipeline:
             indicators.append(ctx_result)
         except Exception:
             logger.warning("Contextual analysis (CTX) failed", exc_info=True)
+            warnings.append("Contextual analysis (CTX) failed")
 
         # Step 6: Compute fraud score (apply sensitivity overrides if provided)
         effective_settings = self._settings

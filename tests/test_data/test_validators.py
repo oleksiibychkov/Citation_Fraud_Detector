@@ -88,9 +88,10 @@ class TestCheckSurnameMatch:
         assert matches is False
         assert "Surname mismatch" in warning
 
-    def test_empty_api_name_passes(self):
-        matches, _ = check_surname_match("Ivanenko", "")
-        assert matches is True
+    def test_empty_api_name_is_mismatch(self):
+        matches, warning = check_surname_match("Ivanenko", "")
+        assert matches is False
+        assert "empty" in warning.lower()
 
     def test_whitespace_handling(self):
         matches, _ = check_surname_match("  Ivanenko  ", "  Oleksandr Ivanenko  ")

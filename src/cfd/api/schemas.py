@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -127,6 +129,9 @@ class SensitivityOverridesRequest(BaseModel):
         for key, value in v.items():
             if not isinstance(value, (int, float)):
                 msg = f"Value for '{key}' must be numeric"
+                raise ValueError(msg)
+            if math.isnan(value) or math.isinf(value):
+                msg = f"Value for '{key}' must be finite (got {value})"
                 raise ValueError(msg)
             if value < 0:
                 msg = f"Value for '{key}' must be non-negative"

@@ -52,7 +52,18 @@ def detect_communities(
 
         internal_d, external_d = engine.community_densities(members)
         if external_d == 0.0:
-            continue  # sole community — no external comparison possible
+            # Isolated community with internal edges is highly suspicious
+            if internal_d > 0:
+                suspicious.append({
+                    "community_id": cid,
+                    "member_count": len(members),
+                    "member_ids": sorted(members),
+                    "internal_density": round(internal_d, 6),
+                    "external_density": 0.0,
+                    "density_ratio": float("inf"),
+                    "isolated": True,
+                })
+            continue
         ratio = internal_d / external_d
 
         if ratio > density_ratio_threshold:

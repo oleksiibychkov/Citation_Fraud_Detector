@@ -276,7 +276,8 @@ def compute_hta(author_data: AuthorData) -> IndicatorResult:
         if values[i - 1] > 0:
             growth_rates.append((values[i] - values[i - 1]) / values[i - 1])
         else:
-            growth_rates.append(0.0)
+            # 0→nonzero is highly anomalous; use the raw value as a proxy
+            growth_rates.append(float(values[i]) if values[i] > 0 else 0.0)
 
     if not growth_rates:
         return IndicatorResult("HTA", 0.0, {"status": "N/A", "reason": "no_growth_data"})
