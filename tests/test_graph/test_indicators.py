@@ -11,19 +11,20 @@ def _make_profile():
     )
 
 
-def _make_citations(source_ids: list[int | None], self_cit_count: int = 0) -> list[Citation]:
+def _make_citations(source_ids: list[int | str | None], self_cit_count: int = 0) -> list[Citation]:
     """Build citations: first self_cit_count are self-citations, rest from source_ids."""
     cits = []
     for i in range(self_cit_count):
         cits.append(Citation(
             source_work_id=f"self-w-{i}", target_work_id=f"self-t-{i}",
-            source_author_id=100, target_author_id=100,
+            source_author_id="100", target_author_id="100",
             is_self_citation=True, source_api="test",
         ))
     for idx, sid in enumerate(source_ids):
         cits.append(Citation(
             source_work_id=f"w-{idx}", target_work_id=f"t-{idx}",
-            source_author_id=sid, target_author_id=100,
+            source_author_id=str(sid) if sid is not None else None,
+            target_author_id="100",
             is_self_citation=False, source_api="test",
         ))
     return cits

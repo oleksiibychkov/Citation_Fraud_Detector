@@ -44,22 +44,26 @@ def compute_scr(author_data: AuthorData) -> IndicatorResult:
 def compute_mcr(
     citations_a: list[Citation],
     citations_b: list[Citation],
-    author_a_id: int,
-    author_b_id: int,
+    author_a_id: str | int,
+    author_b_id: str | int,
 ) -> IndicatorResult:
     """Mutual Citation Ratio between two authors.
 
     MCR(a,b) = 2 * min(cit(a->b), cit(b->a)) / (|cit(a)| + |cit(b)|)
     """
+    # Normalize to strings for comparison (source_author_id is now str | None)
+    a_id = str(author_a_id)
+    b_id = str(author_b_id)
+
     a_cites_b = sum(
         1
         for c in citations_a
-        if c.source_author_id == author_a_id and c.target_author_id == author_b_id
+        if c.source_author_id == a_id and c.target_author_id == b_id
     )
     b_cites_a = sum(
         1
         for c in citations_b
-        if c.source_author_id == author_b_id and c.target_author_id == author_a_id
+        if c.source_author_id == b_id and c.target_author_id == a_id
     )
     mutual = min(a_cites_b, b_cites_a)
     total = len(citations_a) + len(citations_b)
@@ -196,14 +200,29 @@ def _compute_mcr_legacy(author_data: AuthorData) -> IndicatorResult:
 
 
 def compute_cb(author_data: AuthorData) -> IndicatorResult:
-    """Citation Bottleneck: CB = max_k(incoming from k) / total_incoming."""
-    source_counts: Counter = Counter()
+    """Citation Bottleneck: CB = max_k(incoming from k) / total_incoming.
+
+    Identifies when a disproportionate share of citations comes from a single source.
+    Uses source_author_id when available (populated by OpenAlex), with fallback
+    to deriving author-to-author edges from work-level citations via co_authors.
+    """
+    author_work_ids = {pub.work_id for pub in author_data.publications}
+
+    # Try direct source_author_id first (populated by _fetch_citing_works)
+    source_counts: Counter[str] = Counter()
     total_incoming = 0
 
     for c in author_data.citations:
         if not c.is_self_citation and c.source_author_id:
+            # If we have publications, only count incoming citations
+            if author_work_ids and c.target_work_id not in author_work_ids:
+                continue
             source_counts[c.source_author_id] += 1
             total_incoming += 1
+
+    # Fallback: derive from work-to-author mapping (same approach as MCR fix)
+    if total_incoming == 0:
+        source_counts, total_incoming = _derive_cb_from_works(author_data)
 
     if total_incoming == 0:
         return IndicatorResult("CB", 0.0, {"max_source": None, "total_incoming": 0})
@@ -218,8 +237,48 @@ def compute_cb(author_data: AuthorData) -> IndicatorResult:
             "max_source_author_id": max_source_id,
             "max_source_count": max_count,
             "total_incoming": total_incoming,
+            "unique_sources": len(source_counts),
         },
     )
+
+
+def _derive_cb_from_works(author_data: AuthorData) -> tuple[Counter[str], int]:
+    """Derive citation bottleneck from work-level citations via co_authors.
+
+    For each incoming citation to our publications, determine the citing authors
+    from work_to_authors mapping.
+    """
+    our_id = author_data.profile.openalex_id
+    author_work_ids = {pub.work_id for pub in author_data.publications}
+
+    # Build work -> authors mapping
+    work_to_authors: dict[str, set[str]] = {}
+    for pub in author_data.publications:
+        authors = set()
+        for ca in pub.co_authors:
+            aid = ca.get("author_id", "")
+            if aid:
+                authors.add(aid)
+        if authors:
+            work_to_authors[pub.work_id] = authors
+
+    source_counts: Counter[str] = Counter()
+    total_incoming = 0
+
+    for c in author_data.citations:
+        if c.is_self_citation:
+            continue
+        # Only count incoming citations (where target is our publication)
+        if c.target_work_id not in author_work_ids:
+            continue
+        # Get authors of the citing work
+        src_authors = work_to_authors.get(c.source_work_id, set())
+        for sa in src_authors:
+            if sa != our_id:
+                source_counts[sa] += 1
+                total_incoming += 1
+
+    return source_counts, total_incoming
 
 
 def compute_ta(author_data: AuthorData, z_threshold: float = 3.0) -> IndicatorResult:

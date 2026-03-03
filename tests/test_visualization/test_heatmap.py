@@ -17,7 +17,7 @@ class TestBuildMutualHeatmap:
     def test_single_author(self):
         cits = [
             Citation(source_work_id="W1", target_work_id="W2",
-                     source_author_id=1, target_author_id=1,
+                     source_author_id="1", target_author_id="1",
                      is_self_citation=True, source_api="openalex"),
         ]
         ad = AuthorData(profile=_make_profile(), publications=[], citations=cits)
@@ -28,10 +28,10 @@ class TestBuildMutualHeatmap:
     def test_mutual_pair(self):
         cits = [
             Citation(source_work_id="W1", target_work_id="W2",
-                     source_author_id=1, target_author_id=2,
+                     source_author_id="1", target_author_id="2",
                      is_self_citation=False, source_api="openalex"),
             Citation(source_work_id="W3", target_work_id="W4",
-                     source_author_id=2, target_author_id=1,
+                     source_author_id="2", target_author_id="1",
                      is_self_citation=False, source_api="openalex"),
         ]
         ad = AuthorData(profile=_make_profile(), publications=[], citations=cits)
@@ -46,7 +46,7 @@ class TestBuildMutualHeatmap:
     def test_matrix_symmetric(self):
         cits = [
             Citation(source_work_id=f"W{i}", target_work_id=f"T{i}",
-                     source_author_id=i % 3 + 1, target_author_id=(i + 1) % 3 + 1,
+                     source_author_id=str(i % 3 + 1), target_author_id=str((i + 1) % 3 + 1),
                      is_self_citation=False, source_api="openalex")
             for i in range(9)
         ]
@@ -64,10 +64,10 @@ class TestBuildMutualHeatmap:
     def test_colorscale_present(self):
         cits = [
             Citation(source_work_id="W1", target_work_id="W2",
-                     source_author_id=1, target_author_id=2,
+                     source_author_id="1", target_author_id="2",
                      is_self_citation=False, source_api="openalex"),
             Citation(source_work_id="W3", target_work_id="W4",
-                     source_author_id=2, target_author_id=1,
+                     source_author_id="2", target_author_id="1",
                      is_self_citation=False, source_api="openalex"),
         ]
         ad = AuthorData(profile=_make_profile(), publications=[], citations=cits)

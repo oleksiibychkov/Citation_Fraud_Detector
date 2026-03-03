@@ -346,13 +346,17 @@ class OpenAlexStrategy(DataSourceStrategy):
                 if seen_edges is not None:
                     seen_edges.add(edge_key)
 
-                # Check if this is a self-citation (any of citing work's authors is our author)
-                is_self = self._is_self_citation(citing_work, author)
+                # Extract citing author info (for CB, RLA, GIC indicators)
+                is_self, primary_author_id, primary_institution = (
+                    self._extract_citing_author_info(citing_work, author)
+                )
 
                 citations.append(
                     Citation(
                         source_work_id=citing_id,
                         target_work_id=pub.work_id,
+                        source_author_id=primary_author_id,
+                        source_institution=primary_institution,
                         citation_date=cite_date,
                         is_self_citation=is_self,
                         source_api="openalex",
@@ -363,6 +367,55 @@ class OpenAlexStrategy(DataSourceStrategy):
             cursor = meta.get("next_cursor")
             if not data.get("results"):
                 break
+
+    @staticmethod
+    def _extract_citing_author_info(
+        citing_work: dict, author: AuthorProfile,
+    ) -> tuple[bool, str | None, str | None]:
+        """Extract citing author info: (is_self_citation, primary_author_id, primary_institution).
+
+        Returns the first (primary) non-self author's ID and institution.
+        If all authors are self, returns self-citation with our author's ID.
+        """
+        is_self = False
+        primary_author_id: str | None = None
+        primary_institution: str | None = None
+
+        for authorship in citing_work.get("authorships") or []:
+            author_obj = authorship.get("author") or {}
+            citing_author_id = (author_obj.get("id") or "").replace("https://openalex.org/", "")
+
+            if citing_author_id and citing_author_id == author.openalex_id:
+                is_self = True
+                continue
+
+            # First non-self author becomes the primary
+            if primary_author_id is None and citing_author_id:
+                primary_author_id = citing_author_id
+                # Extract institution from first available affiliation
+                institutions = authorship.get("institutions") or []
+                if institutions:
+                    inst = institutions[0]
+                    primary_institution = (
+                        (inst.get("display_name") or "")
+                        or (inst.get("id") or "").replace("https://openalex.org/", "")
+                    ) or None
+
+        # If no non-self author found, fall back to first author
+        if primary_author_id is None and not is_self:
+            authorships = citing_work.get("authorships") or []
+            if authorships:
+                author_obj = authorships[0].get("author") or {}
+                primary_author_id = (author_obj.get("id") or "").replace("https://openalex.org/", "")
+                institutions = authorships[0].get("institutions") or []
+                if institutions:
+                    inst = institutions[0]
+                    primary_institution = (
+                        (inst.get("display_name") or "")
+                        or (inst.get("id") or "").replace("https://openalex.org/", "")
+                    ) or None
+
+        return is_self, primary_author_id, primary_institution
 
     @staticmethod
     def _is_self_citation(citing_work: dict, author: AuthorProfile) -> bool:

@@ -27,7 +27,7 @@ class TestBuildCitationGraph:
         citations = [
             Citation(
                 source_work_id="EXT1", target_work_id="W1",
-                source_author_id=10, target_author_id=1,
+                source_author_id="10", target_author_id="1",
                 source_api="test",
             ),
         ]
@@ -46,7 +46,7 @@ class TestBuildCitationGraph:
         citations = [
             Citation(
                 source_work_id="W1", target_work_id="W2",
-                source_author_id=1, target_author_id=1,
+                source_author_id="1", target_author_id="1",
                 citation_date=date(2022, 6, 1),
                 is_self_citation=True, source_api="test",
             ),
@@ -78,22 +78,22 @@ class TestBuildAuthorGraph:
     def test_basic_graph(self):
         citations = [
             Citation(source_work_id="W1", target_work_id="W2",
-                     source_author_id=1, target_author_id=2, source_api="test"),
+                     source_author_id="1", target_author_id="2", source_api="test"),
             Citation(source_work_id="W3", target_work_id="W4",
-                     source_author_id=1, target_author_id=2, source_api="test"),
+                     source_author_id="1", target_author_id="2", source_api="test"),
             Citation(source_work_id="W5", target_work_id="W6",
-                     source_author_id=2, target_author_id=1, source_api="test"),
+                     source_author_id="2", target_author_id="1", source_api="test"),
         ]
         g = build_author_graph(citations)
-        assert g.has_edge(1, 2)
-        assert g[1][2]["weight"] == 2
-        assert g.has_edge(2, 1)
-        assert g[2][1]["weight"] == 1
+        assert g.has_edge("1", "2")
+        assert g["1"]["2"]["weight"] == 2
+        assert g.has_edge("2", "1")
+        assert g["2"]["1"]["weight"] == 1
 
     def test_excludes_self_citations(self):
         citations = [
             Citation(source_work_id="W1", target_work_id="W2",
-                     source_author_id=1, target_author_id=1, source_api="test"),
+                     source_author_id="1", target_author_id="1", source_api="test"),
         ]
         g = build_author_graph(citations)
         assert len(g.edges) == 0

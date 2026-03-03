@@ -47,8 +47,9 @@ class Citation(BaseModel):
 
     source_work_id: str  # the citing work
     target_work_id: str  # the cited work
-    source_author_id: int | None = None
-    target_author_id: int | None = None
+    source_author_id: str | None = None
+    target_author_id: str | None = None
+    source_institution: str | None = None  # institution of citing author
     citation_date: date | None = None
     is_self_citation: bool = False
     source_api: str

@@ -498,7 +498,7 @@ class TestPipelineIncrementalSkip:
         pubs = [_pub(yr=2020 + i % 3, idx=i) for i in range(5)]
         # Create citations with source/target author IDs for mutual graph
         cites = [
-            _cite(idx=i, source_author_id=100 + i % 3, target_author_id=200 + i % 3)
+            _cite(idx=i, source_author_id=str(100 + i % 3), target_author_id=str(200 + i % 3))
             for i in range(10)
         ]
         mock_strategy.collect.return_value = AuthorData(

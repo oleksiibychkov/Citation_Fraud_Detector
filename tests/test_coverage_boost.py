@@ -35,7 +35,7 @@ class TestTAMonthlyGranularity:
             for _ in range(count):
                 cits.append(Citation(
                     source_work_id=f"E{idx}", target_work_id=f"W{idx}",
-                    source_author_id=10, target_author_id=1,
+                    source_author_id="10", target_author_id="1",
                     citation_date=date(y, m, 15),
                     is_self_citation=False, source_api="test",
                 ))
@@ -72,7 +72,7 @@ class TestTAMonthlyGranularity:
             for i in range(cit_count):
                 cits.append(Citation(
                     source_work_id=f"E_{year}_{i}", target_work_id=f"W{i}",
-                    source_author_id=10, target_author_id=1,
+                    source_author_id="10", target_author_id="1",
                     citation_date=date(year, 6, 1),
                     is_self_citation=False, source_api="test",
                 ))
@@ -96,7 +96,7 @@ class TestTAMonthlyGranularity:
             for i in range(5):
                 cits.append(Citation(
                     source_work_id=f"E_{year}_{i}", target_work_id=f"W{i}",
-                    source_author_id=10, target_author_id=1,
+                    source_author_id="10", target_author_id="1",
                     citation_date=date(year, 6, 1),
                     is_self_citation=False, source_api="test",
                 ))
@@ -495,7 +495,7 @@ class TestPipelineExceptionBranches:
             ],
             citations=[
                 Citation(source_work_id=f"E{i}", target_work_id=f"W{i % 10}",
-                         source_author_id=100, target_author_id=1,
+                         source_author_id="100", target_author_id="1",
                          citation_date=date(2020, 6, 1),
                          is_self_citation=(i < 3), source_api="test")
                 for i in range(30)
@@ -763,7 +763,7 @@ class TestHeatmapBranches:
             citations=[
                 Citation(
                     source_work_id="E1", target_work_id="W1",
-                    source_author_id=1, target_author_id=1,
+                    source_author_id="1", target_author_id="1",
                     citation_date=date(2020, 1, 1),
                     is_self_citation=False, source_api="test",
                 ),
@@ -779,7 +779,7 @@ class TestHeatmapBranches:
         for i in range(35):
             cits.append(Citation(
                 source_work_id=f"E{i}", target_work_id=f"W{i}",
-                source_author_id=i, target_author_id=i + 100,
+                source_author_id=str(i), target_author_id=str(i + 100),
                 citation_date=date(2020, 1, 1),
                 is_self_citation=False, source_api="test",
             ))
@@ -1047,7 +1047,7 @@ class TestBuildFigure:
             ],
             citations=[
                 Citation(source_work_id="E1", target_work_id="W1",
-                         source_author_id=10, target_author_id=1,
+                         source_author_id="10", target_author_id="1",
                          citation_date=date(2020, 6, 1),
                          is_self_citation=False, source_api="test"),
             ],
@@ -1340,7 +1340,7 @@ class TestPipelineIndicatorExceptionBranches:
             ],
             citations=[
                 Citation(source_work_id=f"E{i}", target_work_id=f"W{i % 10}",
-                         source_author_id=100, target_author_id=1,
+                         source_author_id="100", target_author_id="1",
                          citation_date=date(2020, 6, 1),
                          is_self_citation=(i < 3), source_api="test")
                 for i in range(30)

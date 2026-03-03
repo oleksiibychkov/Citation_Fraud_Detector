@@ -48,7 +48,7 @@ class TestBuildHtNtFigure:
         cits = [
             Citation(source_work_id="E1", target_work_id="W1",
                      citation_date=date(2021, 1, 1),
-                     source_author_id=2, target_author_id=1,
+                     source_author_id="2", target_author_id="1",
                      is_self_citation=False, source_api="openalex"),
         ]
         ad = AuthorData(profile=_make_profile(), publications=pubs, citations=cits)

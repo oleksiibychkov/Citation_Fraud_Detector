@@ -45,7 +45,7 @@ class TestBuildNetworkFigure:
         ]
         cits = [
             Citation(source_work_id="W1", target_work_id="W2",
-                     source_author_id=1, target_author_id=1,
+                     source_author_id="1", target_author_id="1",
                      is_self_citation=False, source_api="openalex"),
         ]
         ad = AuthorData(profile=profile, publications=pubs, citations=cits)
@@ -64,7 +64,7 @@ class TestBuildNetworkFigure:
         ]
         cits = [
             Citation(source_work_id="W1", target_work_id="W2",
-                     source_author_id=1, target_author_id=1,
+                     source_author_id="1", target_author_id="1",
                      is_self_citation=True, source_api="openalex"),
         ]
         ad = AuthorData(profile=profile, publications=pubs, citations=cits)
@@ -104,7 +104,7 @@ class TestBuildNetworkFigure:
         ]
         cits = [
             Citation(source_work_id=f"EXT{i}", target_work_id=f"W{i % 5 + 1}",
-                     source_author_id=i + 10, target_author_id=1,
+                     source_author_id=str(i + 10), target_author_id="1",
                      is_self_citation=False, source_api="openalex")
             for i in range(20)
         ]

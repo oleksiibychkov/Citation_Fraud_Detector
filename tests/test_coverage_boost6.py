@@ -141,7 +141,7 @@ class TestMutualContinueBranch:
         cites = [
             Citation(
                 source_work_id="s1", target_work_id="t1",
-                source_author_id=1, target_author_id=2,
+                source_author_id="1", target_author_id="2",
                 is_self_citation=False, source_api="openalex",
             ),
         ]

@@ -93,8 +93,8 @@ def sample_citations():
             Citation(
                 source_work_id=f"W{i}",
                 target_work_id=f"W{i - 1}" if i > 1 else "W10",
-                source_author_id=1,
-                target_author_id=1,
+                source_author_id="1",
+                target_author_id="1",
                 citation_date=date(2022, i, 1),
                 is_self_citation=True,
                 source_api="openalex",
@@ -106,8 +106,8 @@ def sample_citations():
             Citation(
                 source_work_id=f"EXT{i}",
                 target_work_id=f"W{i % 10 + 1}",
-                source_author_id=i,
-                target_author_id=1,
+                source_author_id=str(i),
+                target_author_id="1",
                 citation_date=date(2023, i % 12 + 1, 1),
                 is_self_citation=False,
                 source_api="openalex",

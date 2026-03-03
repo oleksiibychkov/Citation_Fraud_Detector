@@ -29,14 +29,14 @@ def author_with_self_citations():
     for i in range(3):
         citations.append(Citation(
             source_work_id=f"W{i}", target_work_id=f"T{i}",
-            source_author_id=1, target_author_id=1,
+            source_author_id="1", target_author_id="1",
             citation_date=date(2022, 1, 1), is_self_citation=True, source_api="test",
         ))
     # 7 external citations
     for i in range(7):
         citations.append(Citation(
             source_work_id=f"EXT{i}", target_work_id=f"T{i}",
-            source_author_id=i + 10, target_author_id=1,
+            source_author_id=str(i + 10), target_author_id="1",
             citation_date=date(2022, 1, 1), is_self_citation=False, source_api="test",
         ))
     return AuthorData(profile=profile, publications=[], citations=citations)
@@ -62,7 +62,7 @@ class TestComputeSCR:
         citations = [
             Citation(
                 source_work_id=f"W{i}", target_work_id=f"T{i}",
-                source_author_id=1, target_author_id=1,
+                source_author_id="1", target_author_id="1",
                 is_self_citation=True, source_api="test",
             )
             for i in range(5)
@@ -79,13 +79,13 @@ class TestComputeMCR:
     def test_symmetric_citations(self):
         cit_a = [
             Citation(source_work_id="WA1", target_work_id="WB1",
-                     source_author_id=1, target_author_id=2, source_api="test"),
+                     source_author_id="1", target_author_id="2", source_api="test"),
             Citation(source_work_id="WA2", target_work_id="WB2",
-                     source_author_id=1, target_author_id=2, source_api="test"),
+                     source_author_id="1", target_author_id="2", source_api="test"),
         ]
         cit_b = [
             Citation(source_work_id="WB3", target_work_id="WA3",
-                     source_author_id=2, target_author_id=1, source_api="test"),
+                     source_author_id="2", target_author_id="1", source_api="test"),
         ]
         result = compute_mcr(cit_a, cit_b, 1, 2)
         # a cites b: 2, b cites a: 1, mutual = min(2,1)=1, total=3
@@ -96,7 +96,7 @@ class TestComputeMCR:
     def test_no_mutual(self):
         cit_a = [
             Citation(source_work_id="WA1", target_work_id="WB1",
-                     source_author_id=1, target_author_id=2, source_api="test"),
+                     source_author_id="1", target_author_id="2", source_api="test"),
         ]
         cit_b = []
         result = compute_mcr(cit_a, cit_b, 1, 2)
@@ -120,7 +120,7 @@ class TestComputeMCRFromAuthorData:
             publications=[],
             citations=[
                 Citation(source_work_id="W1", target_work_id="W2",
-                         source_author_id=1, target_author_id=1,
+                         source_author_id="1", target_author_id="1",
                          is_self_citation=True, source_api="test"),
             ],
         )
@@ -136,14 +136,14 @@ class TestComputeCB:
         for i in range(8):
             citations.append(Citation(
                 source_work_id=f"EXT{i}", target_work_id=f"W{i}",
-                source_author_id=10, target_author_id=1,
+                source_author_id="10", target_author_id="1",
                 is_self_citation=False, source_api="test",
             ))
         # 2 citations from author 11
         for i in range(2):
             citations.append(Citation(
                 source_work_id=f"EXT2_{i}", target_work_id=f"W{i}",
-                source_author_id=11, target_author_id=1,
+                source_author_id="11", target_author_id="1",
                 is_self_citation=False, source_api="test",
             ))
         data = AuthorData(
@@ -162,7 +162,7 @@ class TestComputeCB:
             publications=[],
             citations=[
                 Citation(source_work_id="W1", target_work_id="W2",
-                         source_author_id=1, target_author_id=1,
+                         source_author_id="1", target_author_id="1",
                          is_self_citation=True, source_api="test"),
             ],
         )
@@ -178,7 +178,7 @@ class TestComputeTA:
             for i in range(5):
                 citations.append(Citation(
                     source_work_id=f"E_{year}_{i}", target_work_id=f"W{i}",
-                    source_author_id=10, target_author_id=1,
+                    source_author_id="10", target_author_id="1",
                     citation_date=date(year, 6, 1),
                     is_self_citation=False, source_api="test",
                 ))
@@ -186,7 +186,7 @@ class TestComputeTA:
         for i in range(50):
             citations.append(Citation(
                 source_work_id=f"E_2022_{i}", target_work_id=f"W{i % 5}",
-                source_author_id=10 + i, target_author_id=1,
+                source_author_id=str(10 + i), target_author_id="1",
                 citation_date=date(2022, 6, 1),
                 is_self_citation=False, source_api="test",
             ))
@@ -202,7 +202,7 @@ class TestComputeTA:
     def test_no_timestamps(self):
         citations = [
             Citation(source_work_id="E1", target_work_id="W1",
-                     source_author_id=10, target_author_id=1,
+                     source_author_id="10", target_author_id="1",
                      is_self_citation=False, source_api="test"),
         ]
         data = AuthorData(
@@ -216,11 +216,11 @@ class TestComputeTA:
     def test_insufficient_years(self):
         citations = [
             Citation(source_work_id="E1", target_work_id="W1",
-                     source_author_id=10, target_author_id=1,
+                     source_author_id="10", target_author_id="1",
                      citation_date=date(2022, 1, 1),
                      is_self_citation=False, source_api="test"),
             Citation(source_work_id="E2", target_work_id="W2",
-                     source_author_id=11, target_author_id=1,
+                     source_author_id="11", target_author_id="1",
                      citation_date=date(2022, 6, 1),
                      is_self_citation=False, source_api="test"),
         ]

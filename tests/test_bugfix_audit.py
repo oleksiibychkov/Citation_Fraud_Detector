@@ -248,7 +248,7 @@ class TestPipelineFailureWarnings:
             pubs=[_pub(0)],
             cits=[Citation(
                 source_work_id="W999", target_work_id="W0",
-                source_author_id=999, target_author_id=1,
+                source_author_id="999", target_author_id="1",
                 is_self_citation=False,
                 source_api="openalex",
             )],

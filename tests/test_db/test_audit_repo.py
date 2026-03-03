@@ -12,7 +12,7 @@ class TestAuditLogRepository:
         set_execute_data(mock_client, [{"id": 1}])
         repo = AuditLogRepository(mock_client)
         result = repo.log(
-            "view_report", target_author_id=1,
+            "view_report", target_author_id="1",
             details={"key": "val"}, user_id="admin", api_key_id=5,
         )
         assert result["id"] == 1
