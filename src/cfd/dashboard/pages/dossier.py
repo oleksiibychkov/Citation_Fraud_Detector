@@ -50,6 +50,16 @@ def render():
         st.error("Analysis failed. Check your inputs and try again.")
         return
 
+    # Data source disclaimer
+    api_used = getattr(result.author_profile, "source_api", source) or source
+    if api_used == "openalex":
+        st.info(
+            "Data source: **OpenAlex** (free). "
+            "OpenAlex may have incomplete coverage compared to Scopus — "
+            "h-index, publication count, and citation count may be lower than in Scopus. "
+            "For more accurate data, configure a Scopus API key (`CFD_SCOPUS_API_KEY`)."
+        )
+
     # Section 1: Author Info
     st.subheader("Author Profile")
     profile = result.author_profile
