@@ -402,8 +402,7 @@ class TestDossier:
 class TestDashboardApp:
     def test_main_overview(self, monkeypatch):
         mock_st = MagicMock()
-        mock_st.sidebar.radio.return_value = "Overview"
-        mock_st.sidebar.selectbox.return_value = "ua"
+        mock_st.sidebar.radio.return_value = "\u041e\u0433\u043b\u044f\u0434 \u0441\u043f\u043e\u0441\u0442\u0435\u0440\u0435\u0436\u0435\u043d\u044c"
         mock_st.session_state = {}
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
@@ -414,8 +413,7 @@ class TestDashboardApp:
 
     def test_main_dossier(self, monkeypatch):
         mock_st = MagicMock()
-        mock_st.sidebar.radio.return_value = "Author Dossier"
-        mock_st.sidebar.selectbox.return_value = "en"
+        mock_st.sidebar.radio.return_value = "\u0414\u043e\u0441\u044c\u0454 \u0430\u0432\u0442\u043e\u0440\u0430"
         mock_st.session_state = {}
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
@@ -426,8 +424,7 @@ class TestDashboardApp:
 
     def test_main_compare(self, monkeypatch):
         mock_st = MagicMock()
-        mock_st.sidebar.radio.return_value = "Snapshot Compare"
-        mock_st.sidebar.selectbox.return_value = "ua"
+        mock_st.sidebar.radio.return_value = "\u041f\u043e\u0440\u0456\u0432\u043d\u044f\u043d\u043d\u044f \u0437\u043d\u0456\u043c\u043a\u0456\u0432"
         mock_st.session_state = {}
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
@@ -438,8 +435,7 @@ class TestDashboardApp:
 
     def test_main_antiranking(self, monkeypatch):
         mock_st = MagicMock()
-        mock_st.sidebar.radio.return_value = "Anti-Ranking"
-        mock_st.sidebar.selectbox.return_value = "ua"
+        mock_st.sidebar.radio.return_value = "\u0410\u043d\u0442\u0438\u0440\u0435\u0439\u0442\u0438\u043d\u0433"
         mock_st.session_state = {}
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 

@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import streamlit as st
 
-_DISCLAIMER = {
-    "ua": "Це оцінка підозрілості, а не вирок. Остаточне рішення приймає людина.",
-    "en": "This is a suspicion score, not a verdict. Final decision rests with a human.",
-}
+_DISCLAIMER = (
+    "Це алгоритмічна оцінка підозрілості, а не остаточний вирок. "
+    "Цитатні патерни можуть мати легітимні пояснення (вузька спеціалізація, "
+    "оглядові статті, актуальні теми). Результати мають інтерпретуватися "
+    "кваліфікованими експертами та перевірятися за кількома джерелами даних."
+)
 
 
 def render_disclaimer():
     """Render the ethical disclaimer at the bottom of a dashboard page."""
-    lang = st.session_state.get("lang", "ua")
     st.markdown("---")
-    st.caption(_DISCLAIMER.get(lang, _DISCLAIMER["en"]))
+    st.caption(_DISCLAIMER)

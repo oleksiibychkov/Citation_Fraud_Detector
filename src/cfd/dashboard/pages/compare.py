@@ -1,4 +1,4 @@
-"""Snapshot Compare page — timeline and delta charts for watchlisted authors."""
+"""Порівняння знімків — часові ряди та дельта-діаграми для авторів зі списку спостережень."""
 
 from __future__ import annotations
 
@@ -7,41 +7,41 @@ import streamlit as st
 
 def render():
     """Render the snapshot comparison page."""
-    st.header("Snapshot Comparison")
+    st.header("Порівняння знімків")
 
-    author_id = st.number_input("Author database ID", min_value=1, step=1)
-    num_snapshots = st.slider("Number of snapshots", 2, 20, 5)
+    author_id = st.number_input("ID автора в базі даних", min_value=1, step=1)
+    num_snapshots = st.slider("Кількість знімків", 2, 20, 5)
 
-    if not st.button("Compare"):
+    if not st.button("Порівняти"):
         return
 
     snapshots = _load_snapshots(author_id, num_snapshots)
 
     if not snapshots:
-        st.info("No snapshots found for this author.")
+        st.info("Знімки для цього автора не знайдено.")
         return
 
     if len(snapshots) < 2:
-        st.warning("Only one snapshot available — no comparison possible.")
+        st.warning("Доступний лише один знімок — порівняння неможливе.")
         _show_single(snapshots[0])
         from cfd.dashboard.disclaimer import render_disclaimer
         render_disclaimer()
         return
 
-    # Timeline chart
-    st.subheader("Score Timeline")
+    # Графік часового ряду
+    st.subheader("Динаміка оцінки")
     _render_timeline(snapshots)
 
-    # Delta table
-    st.subheader("Latest vs Previous")
+    # Таблиця змін
+    st.subheader("Останній vs попередній")
     latest = snapshots[0]
     previous = snapshots[1]
 
     metrics = [
-        ("fraud_score", "Fraud Score"),
-        ("h_index", "h-index"),
-        ("citation_count", "Citations"),
-        ("publication_count", "Publications"),
+        ("fraud_score", "Оцінка шахрайства"),
+        ("h_index", "h-індекс"),
+        ("citation_count", "Цитувань"),
+        ("publication_count", "Публікацій"),
     ]
 
     cols = st.columns(len(metrics))
@@ -56,13 +56,13 @@ def render():
             except (TypeError, ValueError):
                 cols[i].metric(label, str(curr_val))
         else:
-            cols[i].metric(label, str(curr_val or "—"))
+            cols[i].metric(label, str(curr_val or "\u2014"))
 
-    # Algorithm version warning
+    # Попередження про зміну версії алгоритму
     prev_algo = previous.get("algorithm_version", "?")
     curr_algo = latest.get("algorithm_version", "?")
     if prev_algo != curr_algo:
-        st.warning(f"Algorithm version changed: {prev_algo} → {curr_algo}")
+        st.warning(f"Версія алгоритму змінилась: {prev_algo} \u2192 {curr_algo}")
 
     from cfd.dashboard.disclaimer import render_disclaimer
 
@@ -81,15 +81,21 @@ def _load_snapshots(author_id: int, limit: int) -> list[dict]:
         repo = SnapshotRepository(client)
         return repo.get_by_author_id(author_id, limit=limit)
     except Exception:
-        st.error("Could not connect to database.")
+        st.error("Не вдалося підключитися до бази даних.")
         return []
 
 
 def _show_single(snapshot: dict):
     """Display a single snapshot."""
-    for key in ("fraud_score", "h_index", "citation_count", "publication_count"):
-        val = snapshot.get(key, snapshot.get("metrics", {}).get(key, "—"))
-        st.write(f"**{key}**: {val}")
+    labels = {
+        "fraud_score": "Оцінка шахрайства",
+        "h_index": "h-індекс",
+        "citation_count": "Цитувань",
+        "publication_count": "Публікацій",
+    }
+    for key, label in labels.items():
+        val = snapshot.get(key, snapshot.get("metrics", {}).get(key, "\u2014"))
+        st.write(f"**{label}**: {val}")
 
 
 def _render_timeline(snapshots: list[dict]):
@@ -101,13 +107,13 @@ def _render_timeline(snapshots: list[dict]):
         scores = [s.get("fraud_score", 0) for s in reversed(snapshots)]
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=dates, y=scores, mode="lines+markers", name="Fraud Score"))
+        fig.add_trace(go.Scatter(x=dates, y=scores, mode="lines+markers", name="Оцінка шахрайства"))
         fig.update_layout(
-            title="Fraud Score Over Time",
-            xaxis_title="Date",
-            yaxis_title="Score",
+            title="Динаміка оцінки шахрайства",
+            xaxis_title="Дата",
+            yaxis_title="Оцінка",
             yaxis={"range": [0, 1]},
         )
         st.plotly_chart(fig, use_container_width=True)
     except ImportError:
-        st.warning("Plotly required for timeline chart.")
+        st.warning("Для графіка потрібен Plotly.")

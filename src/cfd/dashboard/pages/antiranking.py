@@ -1,4 +1,4 @@
-"""Anti-Ranking page — sortable table of authors ranked by fraud score."""
+"""Антирейтинг — таблиця авторів, відсортована за оцінкою шахрайства."""
 
 from __future__ import annotations
 
@@ -8,38 +8,59 @@ from cfd.visualization.colors import LEVEL_COLORS
 
 VALID_LEVELS = {"normal", "low", "moderate", "high", "critical"}
 
+LEVEL_LABELS = {
+    "normal": "НОРМА",
+    "low": "НИЗЬКИЙ",
+    "moderate": "ПОМІРНИЙ",
+    "high": "ВИСОКИЙ",
+    "critical": "КРИТИЧНИЙ",
+}
+
+SORT_LABELS = {
+    "fraud_score": "Оцінка шахрайства",
+    "h_index": "h-індекс",
+    "citation_count": "Цитувань",
+    "publication_count": "Публікацій",
+}
+
 
 def render():
     """Render the anti-ranking page."""
-    st.header("Anti-Ranking")
-    st.caption("Authors ranked by fraud score (highest suspicion first)")
+    st.header("Антирейтинг")
+    st.caption("Автори, відсортовані за оцінкою підозрілості (найвища першою)")
 
     entries = _load_ranking()
 
     if not entries:
-        st.info("No analysis results available. Run `cfd analyze` or `cfd batch` first.")
+        st.info(
+            "Результати аналізу відсутні. "
+            "Спочатку виконайте аналіз через «Досьє автора» або `cfd analyze`."
+        )
         return
 
-    # Sort control
-    sort_col = st.selectbox("Sort by", ["fraud_score", "h_index", "citation_count", "publication_count"])
-    ascending = st.checkbox("Ascending", value=False)
+    # Сортування
+    sort_labels = list(SORT_LABELS.values())
+    sort_label = st.selectbox("Сортувати за", sort_labels)
+    label_to_key = {v: k for k, v in SORT_LABELS.items()}
+    sort_col = label_to_key.get(sort_label, "fraud_score")
+    ascending = st.checkbox("За зростанням", value=False)
 
     entries.sort(key=lambda e: e.get(sort_col, 0) or 0, reverse=not ascending)
 
-    # Export button
-    if st.button("Export CSV"):
+    # Експорт
+    if st.button("Експорт CSV"):
         _export_csv(entries)
 
-    # Render table
+    # Таблиця
     st.markdown("---")
     header_cols = st.columns([1, 3, 2, 2, 2, 2, 2])
     header_cols[0].write("**#**")
-    header_cols[1].write("**Author**")
-    header_cols[2].write("**Fraud Score**")
-    header_cols[3].write("**Level**")
-    header_cols[4].write("**h-index**")
-    header_cols[5].write("**Citations**")
-    header_cols[6].write("**Publications**")
+    header_cols[1].write("**Автор**")
+    header_cols[2].write("**Оцінка**")
+    header_cols[3].write("**Рівень**")
+    header_cols[4].write("**h-індекс**")
+    header_cols[5].write("**Цитувань**")
+    header_cols[6].write("**Публікацій**")
 
     for i, entry in enumerate(entries, 1):
         level = entry.get("confidence_level", "normal") or "normal"
@@ -47,18 +68,19 @@ def render():
             level = "normal"
         color = LEVEL_COLORS.get(level, "#999999")
         score = entry.get("fraud_score", 0) or 0
+        level_ua = LEVEL_LABELS.get(level, level.upper())
 
         cols = st.columns([1, 3, 2, 2, 2, 2, 2])
         cols[0].write(str(i))
-        cols[1].write(entry.get("author_name", "Unknown"))
+        cols[1].write(entry.get("author_name", "Невідомий"))
         cols[2].markdown(
             f"<span style='color:{color};font-weight:bold'>{score:.4f}</span>",
             unsafe_allow_html=True,
         )
-        cols[3].markdown(f"<span style='color:{color}'>{level.upper()}</span>", unsafe_allow_html=True)
-        cols[4].write(str(entry.get("h_index", "—")))
-        cols[5].write(str(entry.get("citation_count", "—")))
-        cols[6].write(str(entry.get("publication_count", "—")))
+        cols[3].markdown(f"<span style='color:{color}'>{level_ua}</span>", unsafe_allow_html=True)
+        cols[4].write(str(entry.get("h_index", "\u2014")))
+        cols[5].write(str(entry.get("citation_count", "\u2014")))
+        cols[6].write(str(entry.get("publication_count", "\u2014")))
 
     from cfd.dashboard.disclaimer import render_disclaimer
 
@@ -83,7 +105,6 @@ def _load_ranking() -> list[dict]:
 
         scores = score_repo.get_all_ranked()
 
-        # Enrich with author info
         enriched = []
         for row in scores:
             author_id = row.get("author_id")
@@ -91,7 +112,7 @@ def _load_ranking() -> list[dict]:
             enriched.append({
                 "fraud_score": row.get("score") or 0,
                 "confidence_level": row.get("confidence_level") or "normal",
-                "author_name": (author or {}).get("full_name") or (author or {}).get("surname", "Unknown"),
+                "author_name": (author or {}).get("full_name") or (author or {}).get("surname", "Невідомий"),
                 "h_index": (author or {}).get("h_index"),
                 "citation_count": (author or {}).get("citation_count"),
                 "publication_count": (author or {}).get("publication_count"),
@@ -109,17 +130,18 @@ def _export_csv(entries: list[dict]):
 
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["rank", "author_name", "fraud_score", "confidence_level", "h_index", "citations", "publications"])
+    writer.writerow(["#", "Автор", "Оцінка шахрайства", "Рівень ризику", "h-індекс", "Цитувань", "Публікацій"])
 
     for i, e in enumerate(entries, 1):
+        level_ua = LEVEL_LABELS.get(e.get("confidence_level", "normal"), "")
         writer.writerow([
             i,
             e.get("author_name", ""),
             e.get("fraud_score", ""),
-            e.get("confidence_level", ""),
+            level_ua,
             e.get("h_index", ""),
             e.get("citation_count", ""),
             e.get("publication_count", ""),
         ])
 
-    st.download_button("Download CSV", buf.getvalue(), "antiranking.csv", "text/csv")
+    st.download_button("Завантажити CSV", buf.getvalue(), "антирейтинг.csv", "text/csv")
