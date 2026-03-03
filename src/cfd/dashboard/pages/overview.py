@@ -34,7 +34,7 @@ def render():
     # Фільтри
     col1, col2 = st.columns(2)
     with col1:
-        min_score = st.slider("Мін. оцінка шахрайства", 0.0, 1.0, 0.0, 0.05)
+        min_score = st.slider("Мін. оцінка підозрілості", 0.0, 1.0, 0.0, 0.05)
     with col2:
         level_options = list(LEVEL_LABELS.values())
         level_filter_ua = st.multiselect(

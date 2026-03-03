@@ -179,6 +179,7 @@ class AnalysisPipeline:
             mutual_graph = build_mutual_graph(
                 author_data.citations,
                 mcr_threshold=self._settings.mutual_mcr_threshold,
+                author_data=author_data,
             )
             if len(mutual_graph.nodes) >= self._settings.min_clique_size:
                 from cfd.graph.engine import NetworkXEngine

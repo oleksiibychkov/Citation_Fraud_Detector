@@ -5,7 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 st.set_page_config(
-    page_title="Детектор цитатного шахрайства",
+    page_title="Аналіз публікаційної активності",
     page_icon="\U0001f50d",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -14,7 +14,7 @@ st.set_page_config(
 
 def main():
     """Main dashboard entry point."""
-    st.sidebar.title("Детектор цитатного шахрайства")
+    st.sidebar.title("Аналіз публікаційної активності")
 
     page = st.sidebar.radio(
         "Навігація",

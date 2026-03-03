@@ -222,8 +222,8 @@ def render():
     info_cols[2].metric("Публікацій", profile.publication_count if profile.publication_count is not None else "\u2014")
     info_cols[3].metric("Цитувань", profile.citation_count if profile.citation_count is not None else "\u2014")
 
-    # Розділ 2: Оцінка шахрайства
-    st.subheader("Оцінка шахрайства")
+    # Розділ 2: Оцінка публікаційної активності
+    st.subheader("Оцінка публікаційної активності")
     level = result.confidence_level or "normal"
     if level not in VALID_LEVELS:
         level = "normal"
@@ -294,7 +294,7 @@ def _render_conclusion(result, level, color):
     col1, col2, col3 = st.columns(3)
     col1.metric("Проаналізовано індикаторів", total)
     col2.metric("Спрацювало індикаторів", triggered_count)
-    col3.metric("Оцінка шахрайства", f"{score:.4f}")
+    col3.metric("Оцінка публікаційної активності", f"{score:.4f}")
 
     # Вердикт
     verdict = LEVEL_LABELS.get(level, level.upper())

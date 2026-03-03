@@ -1,4 +1,4 @@
-"""Антирейтинг — таблиця авторів, відсортована за оцінкою шахрайства."""
+"""Антирейтинг — таблиця авторів, відсортована за оцінкою підозрілості."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ LEVEL_LABELS = {
 }
 
 SORT_LABELS = {
-    "fraud_score": "Оцінка шахрайства",
+    "fraud_score": "Оцінка публікаційної активності",
     "h_index": "h-індекс",
     "citation_count": "Цитувань",
     "publication_count": "Публікацій",
@@ -130,7 +130,7 @@ def _export_csv(entries: list[dict]):
 
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["#", "Автор", "Оцінка шахрайства", "Рівень ризику", "h-індекс", "Цитувань", "Публікацій"])
+    writer.writerow(["#", "Автор", "Оцінка публікаційної активності", "Рівень ризику", "h-індекс", "Цитувань", "Публікацій"])
 
     for i, e in enumerate(entries, 1):
         level_ua = LEVEL_LABELS.get(e.get("confidence_level", "normal"), "")

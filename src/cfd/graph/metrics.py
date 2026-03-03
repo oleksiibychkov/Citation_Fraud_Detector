@@ -83,9 +83,90 @@ def compute_mcr(
 def compute_mcr_from_author_data(author_data: AuthorData) -> IndicatorResult:
     """Compute max MCR for the analyzed author based on available citation data.
 
-    Finds the top citing author and computes MCR with them.
+    Derives author-to-author citation edges from work-level citations using
+    co-author metadata, then finds the author pair with highest mutual citation.
     """
-    # Count citations from each source author
+    our_id = author_data.profile.openalex_id
+
+    # Build work -> authors mapping from co_authors
+    work_to_authors: dict[str, set[str]] = {}
+    for pub in author_data.publications:
+        authors = set()
+        for ca in pub.co_authors:
+            aid = ca.get("author_id", "")
+            if aid:
+                authors.add(aid)
+        if authors:
+            work_to_authors[pub.work_id] = authors
+
+    if not work_to_authors or not our_id:
+        # Fallback: try legacy author-level IDs
+        return _compute_mcr_legacy(author_data)
+
+    # Derive author-to-author directed citation counts
+    # For each citation (source_work -> target_work), authors of source cite authors of target
+    pair_counts: Counter[tuple[str, str]] = Counter()
+    author_total: Counter[str] = Counter()
+
+    for c in author_data.citations:
+        src_authors = work_to_authors.get(c.source_work_id, set())
+        tgt_authors = work_to_authors.get(c.target_work_id, set())
+        for sa in src_authors:
+            for ta in tgt_authors:
+                if sa != ta:
+                    pair_counts[(sa, ta)] += 1
+                    author_total[sa] += 1
+
+    if not pair_counts:
+        return IndicatorResult("MCR", 0.0, {"status": "no_author_citation_edges"})
+
+    # Find the author with highest mutual citation with our author
+    best_mcr = 0.0
+    best_details: dict = {}
+
+    # Collect all authors that cite us or we cite them
+    related_authors: set[str] = set()
+    for (sa, ta) in pair_counts:
+        if sa == our_id:
+            related_authors.add(ta)
+        if ta == our_id:
+            related_authors.add(sa)
+
+    for other_id in related_authors:
+        they_cite_us = pair_counts.get((other_id, our_id), 0)
+        we_cite_them = pair_counts.get((our_id, other_id), 0)
+
+        if they_cite_us == 0 or we_cite_them == 0:
+            continue  # no mutual citation
+
+        total_our = author_total.get(our_id, 0)
+        total_them = author_total.get(other_id, 0)
+        denom = total_our + total_them
+        if denom == 0:
+            continue
+
+        mutual = min(they_cite_us, we_cite_them)
+        mcr_value = (2 * mutual) / denom
+
+        if mcr_value > best_mcr:
+            best_mcr = mcr_value
+            best_details = {
+                "top_mutual_author_id": other_id,
+                "they_cite_us": they_cite_us,
+                "we_cite_them": we_cite_them,
+                "mutual": mutual,
+                "total_our_edges": total_our,
+                "total_their_edges": total_them,
+            }
+
+    if not best_details:
+        return IndicatorResult("MCR", 0.0, {"status": "no_mutual_citations"})
+
+    return IndicatorResult("MCR", best_mcr, best_details)
+
+
+def _compute_mcr_legacy(author_data: AuthorData) -> IndicatorResult:
+    """Fallback MCR using legacy source_author_id / target_author_id fields."""
     source_author_counts: Counter = Counter()
     for c in author_data.citations:
         if c.source_author_id and not c.is_self_citation:
@@ -94,33 +175,24 @@ def compute_mcr_from_author_data(author_data: AuthorData) -> IndicatorResult:
     if not source_author_counts:
         return IndicatorResult("MCR", 0.0, {"status": "no_citing_authors"})
 
-    # Find top citing author
     top_author_id, top_count = source_author_counts.most_common(1)[0]
-
-    # Count how many times our author cites the top citing author
     our_cites_them = sum(
         1 for c in author_data.citations if c.target_author_id == top_author_id and not c.is_self_citation
     )
-
     total_our = len(author_data.citations)
-    total_them = top_count  # only what we know from incoming citations
+    total_them = top_count
 
     if total_our + total_them == 0:
         return IndicatorResult("MCR", 0.0, {"status": "no_data"})
 
     mutual = min(our_cites_them, top_count)
     value = (2 * mutual) / (total_our + total_them)
-
-    return IndicatorResult(
-        "MCR",
-        value,
-        {
-            "top_citing_author_id": top_author_id,
-            "they_cite_us": top_count,
-            "we_cite_them": our_cites_them,
-            "mutual": mutual,
-        },
-    )
+    return IndicatorResult("MCR", value, {
+        "top_citing_author_id": top_author_id,
+        "they_cite_us": top_count,
+        "we_cite_them": our_cites_them,
+        "mutual": mutual,
+    })
 
 
 def compute_cb(author_data: AuthorData) -> IndicatorResult:

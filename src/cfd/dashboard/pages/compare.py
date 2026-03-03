@@ -38,7 +38,7 @@ def render():
     previous = snapshots[1]
 
     metrics = [
-        ("fraud_score", "Оцінка шахрайства"),
+        ("fraud_score", "Оцінка публікаційної активності"),
         ("h_index", "h-індекс"),
         ("citation_count", "Цитувань"),
         ("publication_count", "Публікацій"),
@@ -88,7 +88,7 @@ def _load_snapshots(author_id: int, limit: int) -> list[dict]:
 def _show_single(snapshot: dict):
     """Display a single snapshot."""
     labels = {
-        "fraud_score": "Оцінка шахрайства",
+        "fraud_score": "Оцінка публікаційної активності",
         "h_index": "h-індекс",
         "citation_count": "Цитувань",
         "publication_count": "Публікацій",
@@ -107,9 +107,9 @@ def _render_timeline(snapshots: list[dict]):
         scores = [s.get("fraud_score", 0) for s in reversed(snapshots)]
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=dates, y=scores, mode="lines+markers", name="Оцінка шахрайства"))
+        fig.add_trace(go.Scatter(x=dates, y=scores, mode="lines+markers", name="Оцінка публікаційної активності"))
         fig.update_layout(
-            title="Динаміка оцінки шахрайства",
+            title="Динаміка оцінки підозрілості",
             xaxis_title="Дата",
             yaxis_title="Оцінка",
             yaxis={"range": [0, 1]},
