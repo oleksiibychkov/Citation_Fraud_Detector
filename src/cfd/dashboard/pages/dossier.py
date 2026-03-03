@@ -22,7 +22,14 @@ def render():
     with col3:
         orcid = st.text_input("ORCID")
 
-    source = st.selectbox("Data source", ["auto", "openalex", "scopus"])
+    # Only show Scopus option when API key is configured
+    from cfd.config.settings import Settings as _Settings
+
+    _s = _Settings()
+    sources = ["openalex", "auto"]
+    if _s.scopus_api_key:
+        sources.append("scopus")
+    source = st.selectbox("Data source", sources)
 
     if not st.button("Analyze"):
         return
