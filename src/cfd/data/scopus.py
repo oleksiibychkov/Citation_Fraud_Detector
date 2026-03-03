@@ -92,8 +92,8 @@ class ScopusStrategy(DataSourceStrategy):
         data_by_scopus: dict, data_by_orcid: dict, scopus_id: str, orcid: str,
     ) -> None:
         """Verify that Scopus ID and ORCID resolve to the same Scopus author."""
-        id_a = data_by_scopus.get("coredata", {}).get("dc:identifier", "").replace("AUTHOR_ID:", "")
-        id_b = data_by_orcid.get("coredata", {}).get("dc:identifier", "").replace("AUTHOR_ID:", "")
+        id_a = ((data_by_scopus.get("coredata") or {}).get("dc:identifier") or "").replace("AUTHOR_ID:", "")
+        id_b = ((data_by_orcid.get("coredata") or {}).get("dc:identifier") or "").replace("AUTHOR_ID:", "")
         if id_a and id_b and id_a != id_b:
             raise IdentityMismatchError(
                 f"Scopus ID {scopus_id} resolves to author {id_a} but ORCID {orcid} "
@@ -142,7 +142,7 @@ class ScopusStrategy(DataSourceStrategy):
         preferred_name = profile_data.get("preferred-name", {})
 
         full_name = f"{preferred_name.get('given-name', '')} {preferred_name.get('surname', '')}".strip()
-        scopus_id = core.get("dc:identifier", "").replace("AUTHOR_ID:", "")
+        scopus_id = (core.get("dc:identifier") or "").replace("AUTHOR_ID:", "")
 
         # Get ORCID if available
         orcid = None

@@ -106,9 +106,9 @@ def _get_coauthors(pub, author_id: str | None) -> list[dict]:
     if not co_authors and pub.raw_data:
         # Fallback: extract from raw_data authorships
         co_authors = []
-        for authorship in pub.raw_data.get("authorships", []):
-            author_obj = authorship.get("author", {})
-            aid = author_obj.get("id", "").replace("https://openalex.org/", "")
+        for authorship in pub.raw_data.get("authorships") or []:
+            author_obj = authorship.get("author") or {}
+            aid = (author_obj.get("id") or "").replace("https://openalex.org/", "")
             co_authors.append({
                 "author_id": aid,
                 "display_name": author_obj.get("display_name", ""),
@@ -133,9 +133,9 @@ def _find_author_position(pub, author_id: str | None) -> str | None:
 
     # Fallback: raw_data
     if pub.raw_data:
-        for authorship in pub.raw_data.get("authorships", []):
-            author_obj = authorship.get("author", {})
-            aid = author_obj.get("id", "").replace("https://openalex.org/", "")
+        for authorship in pub.raw_data.get("authorships") or []:
+            author_obj = authorship.get("author") or {}
+            aid = (author_obj.get("id") or "").replace("https://openalex.org/", "")
             if aid == author_id:
                 return authorship.get("author_position")
 
