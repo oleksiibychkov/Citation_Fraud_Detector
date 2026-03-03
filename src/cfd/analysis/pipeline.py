@@ -114,10 +114,8 @@ class AnalysisPipeline:
         logger.info("Collecting data for %s...", surname)
         author_data = self._strategy.collect(surname, scopus_id=scopus_id, orcid=orcid)
 
-        # Step 1b: Incremental check — skip if nothing changed (§1.7)
-        skipped = self._check_incremental(author_data, warnings)
-        if skipped is not None:
-            return skipped
+        # Step 1b: Incremental check — log if nothing changed, but always proceed
+        self._check_incremental(author_data, warnings)
 
         # Step 2: Check eligibility
         eligible, reason = check_eligibility(author_data.profile, self._settings)

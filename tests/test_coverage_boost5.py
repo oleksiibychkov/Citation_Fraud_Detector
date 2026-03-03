@@ -452,8 +452,8 @@ class TestCompareBranches:
 
 
 class TestPipelineIncrementalSkip:
-    def test_incremental_skip_returns_skipped(self):
-        """Pipeline skips analysis when no changes detected."""
+    def test_incremental_no_changes_still_analyzes(self):
+        """Pipeline always runs analysis even when no changes detected."""
         from cfd.analysis.pipeline import AnalysisPipeline
         from cfd.config.settings import Settings
 
@@ -482,7 +482,8 @@ class TestPipelineIncrementalSkip:
             mock_skip.return_value = (True, {"pub_delta": 0, "cit_delta": 0})
             result = pipeline.analyze("Test", scopus_id="123")
 
-        assert result.status == "skipped_no_changes"
+        # Analysis always proceeds now — status should not be skipped
+        assert result.status != "skipped_no_changes"
 
     def test_clique_detection_in_pipeline(self):
         """Pipeline runs clique detection on mutual graph."""
