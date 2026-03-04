@@ -70,6 +70,12 @@ INDICATOR_INFO: dict[str, tuple[str, str]] = {
         "Виявляє тісно пов'язані групи, де всі цитують усіх — "
         "класична ознака організованих маніпуляцій з цитуваннями.",
     ),
+    "RING": (
+        "Виявлення цитатних кілець",
+        "Виявляє спрямовані цикли цитувань (A→B→C→A) — однонаправлені ланцюжки, "
+        "де кожен учасник цитує наступного. Довші кільця та статистично неймовірні "
+        "цикли свідчать про організовану маніпуляцію.",
+    ),
     "CV": (
         "Швидкість цитування",
         "Вимірює, наскільки швидко статті накопичують цитування відносно їхнього віку, "
@@ -377,7 +383,12 @@ def _render_threshold_line(code: str, value: float, threshold: float, ind, *, is
 
 def _render_conclusion(result, level, color, effective_settings):
     """Render a detailed conclusion about the analysis."""
-    from cfd.graph.scoring import get_trigger_threshold
+    from cfd.graph.scoring import (
+        TIER1_HARD_EVIDENCE,
+        TIER2_CONTEXTUAL,
+        TIER3_DYNAMIC,
+        get_trigger_threshold,
+    )
 
     st.subheader("Висновок")
 
@@ -404,6 +415,10 @@ def _render_conclusion(result, level, color, effective_settings):
     conclusion = LEVEL_CONCLUSIONS.get(level, "")
     st.markdown(conclusion)
 
+    # Пояснення рівня впевненості (чому саме такий рівень)
+    if triggered:
+        _render_confidence_explanation(triggered, level)
+
     # Перелік спрацьованих індикаторів з порогами
     if triggered:
         st.markdown("**Спрацьовані індикатори:**")
@@ -422,6 +437,65 @@ def _render_conclusion(result, level, color, effective_settings):
     from cfd.dashboard.disclaimer import render_disclaimer
 
     render_disclaimer()
+
+
+def _render_confidence_explanation(triggered: list[str], level: str):
+    """Render a textual explanation of why the confidence level was assigned."""
+    from cfd.graph.scoring import TIER1_HARD_EVIDENCE, TIER2_CONTEXTUAL, TIER3_DYNAMIC
+
+    tier1 = [t for t in triggered if t in TIER1_HARD_EVIDENCE]
+    tier2 = [t for t in triggered if t in TIER2_CONTEXTUAL]
+    tier3 = [t for t in triggered if t in TIER3_DYNAMIC]
+
+    lines = []
+
+    if tier1:
+        names = ", ".join(f"**{t}**" for t in tier1)
+        lines.append(
+            f"Виявлено прямі структурні докази маніпуляцій ({names}). "
+            "Цитатні кліки та кільця є найсильнішими індикаторами і автоматично "
+            "підвищують рівень до «ВИСОКИЙ РИЗИК» або вище."
+        )
+
+    if len(tier2) >= 4:
+        names = ", ".join(f"**{t}**" for t in tier2)
+        lines.append(
+            f"Спрацювало {len(tier2)} контекстних індикаторів ({names}). "
+            "Множинні незалежні контекстні сигнали підтверджують наявність аномалій "
+            "і підвищують рівень до «ВИСОКИЙ РИЗИК»."
+        )
+    elif len(tier2) >= 3:
+        names = ", ".join(f"**{t}**" for t in tier2)
+        lines.append(
+            f"Спрацювало {len(tier2)} контекстних індикаторів ({names}). "
+            "Кілька незалежних контекстних сигналів вказують на системні відхилення "
+            "і підвищують мінімальний рівень до «ПОМІРНИЙ РИЗИК»."
+        )
+    elif tier2:
+        names = ", ".join(f"**{t}**" for t in tier2)
+        lines.append(
+            f"Контекстні індикатори ({names}) вказують на структурні відхилення в цитатному профілі."
+        )
+
+    if len(tier3) >= 2:
+        names = ", ".join(f"**{t}**" for t in tier3)
+        lines.append(
+            f"Темпоральні індикатори ({names}) виявили динамічні аномалії — "
+            "неприродні зміни у часі цитувань або публікацій, що додатково підвищує оцінку."
+        )
+    elif tier3:
+        names = ", ".join(f"**{t}**" for t in tier3)
+        lines.append(
+            f"Темпоральний індикатор ({names}) зафіксував відхилення в динаміці цитувань."
+        )
+
+    if not lines:
+        return
+
+    st.markdown("---")
+    st.markdown("**Обґрунтування рівня впевненості:**")
+    for line in lines:
+        st.markdown(f"- {line}")
 
 
 def _run_analysis(author_name, scopus_id, orcid, source):

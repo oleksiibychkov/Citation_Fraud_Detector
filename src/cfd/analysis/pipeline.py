@@ -27,6 +27,7 @@ from cfd.db.repositories.publications import PublicationRepository
 from cfd.graph.builder import build_citation_graph
 from cfd.graph.cliques import clique_to_indicator, detect_cliques
 from cfd.graph.community import community_to_indicator, detect_communities
+from cfd.graph.rings import detect_rings, rings_to_indicator
 from cfd.graph.engine import GraphEngine, select_engine
 from cfd.graph.indicators import compute_gic, compute_rla
 from cfd.graph.metrics import (
@@ -247,6 +248,19 @@ class AnalysisPipeline:
         except Exception:
             logger.warning("Clique detection failed", exc_info=True)
             warnings.append("Clique detection failed")
+
+        # Step 5e2: Citation ring (directed cycle) detection
+        if engine is not None and author_work_ids:
+            try:
+                ring_results = detect_rings(
+                    engine, author_work_ids,
+                    min_length=3, max_length=8,
+                )
+                total_works = len(author_work_ids)
+                indicators.append(rings_to_indicator(ring_results, total_works))
+            except Exception:
+                logger.warning("Ring detection failed", exc_info=True)
+                warnings.append("Ring detection failed")
 
         # Step 5f: Theorem hierarchy
         theorem_results: list[TheoremResult] = []

@@ -5,13 +5,13 @@ from __future__ import annotations
 from cfd.config.settings import Settings
 from cfd.graph.metrics import IndicatorResult
 
-# Full weights for 22 indicators (backward-compatible: score = weighted avg of available)
+# Full weights for 23 indicators (sum = 1.0)
 DEFAULT_WEIGHTS: dict[str, float] = {
     "SCR": 0.07,
     "MCR": 0.09,
     "CB": 0.05,
     "TA": 0.08,
-    "HTA": 0.05,
+    "HTA": 0.04,
     "RLA": 0.04,
     "GIC": 0.04,
     "EIGEN": 0.03,
@@ -19,16 +19,17 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "PAGERANK": 0.04,
     "COMMUNITY": 0.03,
     "CLIQUE": 0.03,
+    "RING": 0.04,
     "CV": 0.05,
     "SBD": 0.04,
     "CTX": 0.04,
     "ANA": 0.05,
     "PB": 0.04,
-    "SSD": 0.05,
+    "SSD": 0.04,
     "CC": 0.04,
-    "CPC": 0.03,
+    "CPC": 0.02,
     "JSCR": 0.04,
-    "COERCE": 0.04,
+    "COERCE": 0.03,
 }
 
 CONFIDENCE_LEVELS: list[tuple[float, float, str]] = [
@@ -38,6 +39,19 @@ CONFIDENCE_LEVELS: list[tuple[float, float, str]] = [
     (0.6, 0.8, "high"),
     (0.8, 1.01, "critical"),
 ]
+
+# Indicator tier classification for hierarchical scoring
+# Tier 1 (hard evidence): auto-elevate to "high" if any triggers
+TIER1_HARD_EVIDENCE = {"CLIQUE", "RING"}
+# Tier 2 (structural/contextual): 3+ triggered → min "moderate"
+TIER2_CONTEXTUAL = {"COMMUNITY", "RLA", "ANA", "GIC", "CB", "CC", "SSD", "CPC"}
+# Tier 3 (dynamic/temporal): supporting evidence
+TIER3_DYNAMIC = {"TA", "HTA", "CV", "SBD"}
+
+# Minimum value to include indicator in weighted average.
+# Indicators below this are excluded from the denominator to avoid
+# diluting the signal from genuinely triggered indicators.
+ZERO_EXCLUSION_EPSILON = 0.01
 
 
 def _normalize_with_cap(value: float, cap: float) -> float:
@@ -55,7 +69,6 @@ def _normalize_indicator(indicator: IndicatorResult, settings: Settings) -> floa
     value = indicator.value
 
     if itype == "SCR":
-        # 0 at 0, 0.5 at warn threshold, 1.0 at high threshold
         if value <= 0:
             return 0.0
         if value >= settings.scr_high_threshold:
@@ -67,26 +80,20 @@ def _normalize_indicator(indicator: IndicatorResult, settings: Settings) -> floa
 
     if itype == "MCR":
         return _normalize_with_cap(value, settings.mcr_threshold * 2)
-
     if itype == "CB":
         return _normalize_with_cap(value, settings.cb_threshold * 2)
-
     if itype == "RLA":
         return _normalize_with_cap(value, settings.rla_threshold * 2)
-
     if itype == "GIC":
         return _normalize_with_cap(value, settings.gic_threshold * 1.5)
-
     if itype == "EIGEN":
         return _normalize_with_cap(value, settings.eigenvector_threshold * 2)
-
     if itype == "BETWEENNESS":
         return _normalize_with_cap(value, settings.betweenness_threshold * 2)
-
     if itype == "PAGERANK":
         return _normalize_with_cap(value, settings.pagerank_threshold * 2)
 
-    # TA, HTA, COMMUNITY, CLIQUE, CV, SBD, CTX, ANA, PB, SSD, CC, CPC, JSCR, COERCE are already [0, 1]
+    # All others (TA, HTA, COMMUNITY, CLIQUE, RING, CV, SBD, CTX, ANA, PB, SSD, CC, CPC, JSCR, COERCE)
     return min(max(value, 0.0), 1.0)
 
 
@@ -102,7 +109,6 @@ def _is_triggered(indicator: IndicatorResult, settings: Settings) -> bool:
     if itype == "CB":
         return value > settings.cb_threshold
     if itype == "TA":
-        # Triggered if max z-score >= threshold
         max_z = indicator.details.get("max_z_score", 0)
         return max_z >= settings.ta_z_threshold
     if itype == "HTA":
@@ -122,6 +128,8 @@ def _is_triggered(indicator: IndicatorResult, settings: Settings) -> bool:
         return value > 0.5
     if itype == "CLIQUE":
         return value > 0.5
+    if itype == "RING":
+        return value > 0.3
     if itype == "CV":
         return value > 0.4
     if itype == "SBD":
@@ -161,6 +169,7 @@ def get_trigger_threshold(indicator_type: str, settings: Settings) -> float:
         "PAGERANK": settings.pagerank_threshold,
         "COMMUNITY": 0.5,
         "CLIQUE": 0.5,
+        "RING": 0.3,
         "CV": 0.4,
         "SBD": settings.sbd_suspicious_threshold,
         "CTX": 0.4,
@@ -175,11 +184,63 @@ def get_trigger_threshold(indicator_type: str, settings: Settings) -> float:
     return thresholds.get(indicator_type, 0.5)
 
 
+def _apply_tier_elevation(
+    score: float,
+    confidence: str,
+    triggered: list[str],
+) -> tuple[float, str]:
+    """Apply tier-based auto-elevation rules.
+
+    - Tier 1 (hard evidence): any triggered → min "high"
+    - Tier 2 (contextual): 3+ triggered → min "moderate"
+    - Tier 3 (dynamic): 2+ triggered → boost score by 0.1
+    """
+    tier1_triggered = [t for t in triggered if t in TIER1_HARD_EVIDENCE]
+    tier2_triggered = [t for t in triggered if t in TIER2_CONTEXTUAL]
+    tier3_triggered = [t for t in triggered if t in TIER3_DYNAMIC]
+
+    level_order = ["normal", "low", "moderate", "high", "critical"]
+
+    def _at_least(current: str, minimum: str) -> str:
+        cur_idx = level_order.index(current) if current in level_order else 0
+        min_idx = level_order.index(minimum) if minimum in level_order else 0
+        return level_order[max(cur_idx, min_idx)]
+
+    # Tier 1: hard evidence → auto-elevate to "high"
+    if tier1_triggered:
+        confidence = _at_least(confidence, "high")
+        score = max(score, 0.6)
+
+    # Tier 2: 3+ contextual → min "moderate"; 4+ → min "high"
+    if len(tier2_triggered) >= 4:
+        confidence = _at_least(confidence, "high")
+        score = max(score, 0.6)
+    elif len(tier2_triggered) >= 3:
+        confidence = _at_least(confidence, "moderate")
+        score = max(score, 0.4)
+
+    # Tier 3: 2+ dynamic → boost score
+    if len(tier3_triggered) >= 2:
+        score = min(score + 0.1, 1.0)
+        # Re-evaluate confidence after boost
+        for low, high, level in CONFIDENCE_LEVELS:
+            if low <= score < high:
+                confidence = _at_least(confidence, level)
+                break
+
+    return round(score, 4), confidence
+
+
 def compute_fraud_score(
     indicators: list[IndicatorResult],
     settings: Settings,
 ) -> tuple[float, str, list[str]]:
     """Compute weighted Fraud Score from indicator results.
+
+    Key improvements:
+    1. Zero-exclusion: indicators with value < epsilon are excluded from the
+       weighted average denominator, preventing them from diluting real signals.
+    2. Tier hierarchy: hard evidence auto-elevates confidence level.
 
     Returns (score, confidence_level, triggered_indicators).
     """
@@ -189,22 +250,31 @@ def compute_fraud_score(
     triggered = []
 
     for ind in indicators:
-        if ind.indicator_type in weights:
-            w = weights[ind.indicator_type]
-            normalized = _normalize_indicator(ind, settings)
+        if ind.indicator_type not in weights:
+            continue
+
+        w = weights[ind.indicator_type]
+        normalized = _normalize_indicator(ind, settings)
+
+        if _is_triggered(ind, settings):
+            triggered.append(ind.indicator_type)
+
+        # Only include non-zero indicators in weighted average
+        if ind.value >= ZERO_EXCLUSION_EPSILON:
             weighted_sum += w * normalized
             total_weight += w
-            if _is_triggered(ind, settings):
-                triggered.append(ind.indicator_type)
 
     score = weighted_sum / total_weight if total_weight > 0 else 0.0
     score = min(max(score, 0.0), 1.0)
 
-    # Determine confidence level
+    # Determine base confidence level
     confidence = "normal"
     for low, high, level in CONFIDENCE_LEVELS:
         if low <= score < high:
             confidence = level
             break
+
+    # Apply tier-based elevation
+    score, confidence = _apply_tier_elevation(score, confidence, triggered)
 
     return round(score, 4), confidence, triggered
