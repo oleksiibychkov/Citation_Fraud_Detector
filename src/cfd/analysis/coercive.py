@@ -13,18 +13,18 @@ logger = logging.getLogger(__name__)
 
 def detect_coercive_citations(
     author_data: AuthorData,
-    concentration_threshold: float = 0.25,
-    recent_bias_threshold: float = 0.50,
+    concentration_threshold: float = 0.40,
+    recent_bias_threshold: float = 0.70,
     recent_years: int = 2,
 ) -> IndicatorResult:
     """Detect potential coercive citation patterns.
 
-    Three signals:
-    1. Journal reference concentration: >threshold of all refs cite one journal.
-    2. Recent bias: >threshold of same-journal refs cite papers from last N years.
-    3. Trend increase: rising same-journal citation ratio over time.
+    Three gradient signals (continuous [0,1] instead of binary):
+    1. Journal reference concentration: gradient from 20% to 60%.
+    2. Recent bias: gradient from 50% to 80%.
+    3. Trend increase: binary (rising same-journal citation ratio over time).
 
-    Final score = weighted combination of triggered signals, ∈ [0, 1].
+    Final score = 0.40*concentration + 0.35*recent_bias + 0.25*trend, ∈ [0, 1].
     """
     # Build work_id → journal lookup
     journal_by_work: dict[str, str] = {}
@@ -65,26 +65,25 @@ def detect_coercive_citations(
             details={"status": "no_references", "total_refs": 0},
         )
 
-    # Signal 1: Journal concentration
+    # Signal 1: Journal concentration (gradient from 20% to 60%)
     top_journal, top_count = ref_journal_counts.most_common(1)[0] if ref_journal_counts else ("", 0)
     concentration = top_count / total_refs if total_refs else 0.0
-    signal_concentration = concentration > concentration_threshold
+    signal_concentration = max(0.0, min((concentration - 0.20) / 0.40, 1.0))
 
-    # Signal 2: Recent bias among same-journal refs
+    # Signal 2: Recent bias among same-journal refs (gradient from 50% to 80%)
     all_recent_flags = []
     for flags in same_journal_by_year.values():
         all_recent_flags.extend(flags)
     recent_fraction = (
         sum(all_recent_flags) / len(all_recent_flags) if all_recent_flags else 0.0
     )
-    signal_recent_bias = recent_fraction > recent_bias_threshold
+    signal_recent_bias = max(0.0, min((recent_fraction - 0.50) / 0.30, 1.0))
 
-    # Signal 3: Trend increase — rising ratio over years
-    signal_trend = _detect_trend_increase(same_journal_by_year)
+    # Signal 3: Trend increase — rising ratio over years (binary)
+    signal_trend = 1.0 if _detect_trend_increase(same_journal_by_year) else 0.0
 
-    # Combine signals
-    signals_triggered = sum([signal_concentration, signal_recent_bias, signal_trend])
-    value = min(signals_triggered / 3.0, 1.0)
+    # Combine signals with weighted formula
+    value = 0.40 * signal_concentration + 0.35 * signal_recent_bias + 0.25 * signal_trend
 
     return IndicatorResult(
         indicator_type="COERCE",
@@ -93,12 +92,11 @@ def detect_coercive_citations(
             "top_journal": top_journal,
             "concentration": round(concentration, 4),
             "concentration_threshold": concentration_threshold,
-            "signal_concentration": signal_concentration,
+            "signal_concentration": round(signal_concentration, 4),
             "recent_fraction": round(recent_fraction, 4),
             "recent_bias_threshold": recent_bias_threshold,
-            "signal_recent_bias": signal_recent_bias,
+            "signal_recent_bias": round(signal_recent_bias, 4),
             "signal_trend_increase": signal_trend,
-            "signals_triggered": signals_triggered,
             "total_refs": total_refs,
         },
     )

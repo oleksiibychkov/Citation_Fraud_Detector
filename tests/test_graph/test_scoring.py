@@ -232,11 +232,12 @@ class TestComputeFraudScore:
         assert level == "normal"
         assert triggered == []
 
-    def test_weights_sum_to_one(self):
-        assert abs(sum(DEFAULT_WEIGHTS.values()) - 1.0) < 1e-10
+    def test_weights_all_positive(self):
+        for k, v in DEFAULT_WEIGHTS.items():
+            assert v > 0, f"Weight for {k} must be positive"
 
     def test_weights_count(self):
-        assert len(DEFAULT_WEIGHTS) == 23
+        assert len(DEFAULT_WEIGHTS) == 27
 
     def test_new_indicators_included(self, settings):
         indicators = [

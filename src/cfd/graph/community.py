@@ -84,15 +84,19 @@ def detect_communities(
     )
 
 
-def community_to_indicator(result: CommunityResult, min_community_size: int = 3) -> IndicatorResult:
+def community_to_indicator(
+    result: CommunityResult,
+    min_community_size: int = 3,
+    density_ratio_threshold: float = 5.0,
+) -> IndicatorResult:
     """Convert community detection result to an IndicatorResult for scoring.
 
     Improved non-binary scoring based on:
     1. Proportion of suspicious communities among eligible ones.
-    2. Weighted severity from density ratios (higher ratio = more suspicious).
+    2. Severity: how far density ratios exceed the threshold (excess only).
     3. Isolation penalty for communities with zero external density.
 
-    Final score = 0.5 * proportion + 0.3 * severity + 0.2 * isolation_factor
+    Final score = 0.4 * proportion + 0.3 * severity + 0.3 * isolation_factor
     """
     suspicious = result.suspicious_communities
 
@@ -105,7 +109,7 @@ def community_to_indicator(result: CommunityResult, min_community_size: int = 3)
     # Component 1: proportion of suspicious communities
     proportion = len(suspicious) / eligible
 
-    # Component 2: severity from density ratios (capped at 10x threshold)
+    # Component 2: severity from excess density ratios (only ratio above threshold counts)
     max_ratio = 0.0
     avg_ratio = 0.0
     isolated_count = 0
@@ -120,12 +124,15 @@ def community_to_indicator(result: CommunityResult, min_community_size: int = 3)
                 ratios.append(min(r, 10.0))
         max_ratio = max(ratios)
         avg_ratio = sum(ratios) / len(ratios)
-    severity = min(avg_ratio / 10.0, 1.0)  # normalize to [0, 1]
+
+    # Severity: only the excess above threshold matters
+    excess_ratio = max(avg_ratio - density_ratio_threshold, 0.0)
+    severity = min(excess_ratio / 10.0, 1.0)
 
     # Component 3: isolation factor — communities with zero external links
     isolation_factor = isolated_count / eligible if eligible > 0 else 0.0
 
-    value = 0.5 * proportion + 0.3 * severity + 0.2 * isolation_factor
+    value = 0.4 * proportion + 0.3 * severity + 0.3 * isolation_factor
     value = min(max(value, 0.0), 1.0)
 
     return IndicatorResult(

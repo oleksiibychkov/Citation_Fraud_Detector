@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     pagerank_threshold: float = 0.1
 
     # Community detection
-    community_density_ratio_threshold: float = 2.0
+    community_density_ratio_threshold: float = 5.0
     min_community_size: int = 3
 
     # Clique detection

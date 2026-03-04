@@ -62,11 +62,11 @@ class TestCommunityToIndicator:
         result = CommunityResult(
             communities={0: {1, 2, 3}, 1: {4, 5, 6}},
             modularity=0.5,
-            suspicious_communities=[{"community_id": 0, "density_ratio": 3.0}],
+            suspicious_communities=[{"community_id": 0, "density_ratio": 8.0}],
         )
-        ind = community_to_indicator(result)
-        # 0.5 * (1/2) + 0.3 * (3.0/10) + 0.2 * 0 = 0.25 + 0.09 = 0.34
-        assert 0.3 <= ind.value <= 0.4
+        ind = community_to_indicator(result, density_ratio_threshold=5.0)
+        # 0.4 * (1/2) + 0.3 * ((8-5)/10) + 0.3 * 0 = 0.2 + 0.09 = 0.29
+        assert 0.25 <= ind.value <= 0.35
 
     def test_all_suspicious(self):
         result = CommunityResult(
@@ -74,6 +74,6 @@ class TestCommunityToIndicator:
             modularity=0.4,
             suspicious_communities=[{"community_id": 0, "density_ratio": 5.0, "isolated": True}],
         )
-        ind = community_to_indicator(result)
-        # 0.5 * 1.0 + 0.3 * 1.0 + 0.2 * 1.0 = 1.0
-        assert ind.value == 1.0
+        ind = community_to_indicator(result, density_ratio_threshold=5.0)
+        # 0.4 * 1.0 + 0.3 * ((10-5)/10) + 0.3 * 1.0 = 0.4 + 0.15 + 0.3 = 0.85
+        assert ind.value == 0.85

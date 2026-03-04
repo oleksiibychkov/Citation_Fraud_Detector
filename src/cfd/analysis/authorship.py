@@ -41,15 +41,17 @@ def compute_ana(
     # Sub-signal 2: position anomaly
     position_score = _position_anomaly_score(stats, author_data)
 
-    # Sub-signal 3: collaboration diversity (inverted repeat rate)
-    diversity_score = 1.0 - stats["repeat_collaboration_rate"]
+    # Sub-signal 3: closed collaboration circle (high repeat rate = suspicious)
+    # A high repeat rate means the author consistently works with the same people,
+    # which can indicate a citation ring or mutual citation arrangement.
+    diversity_score = stats["repeat_collaboration_rate"]
 
     # Sub-signal 4: thematic relevance anomaly (§8.1.8)
     # Detect co-authors appearing in unrelated-topic publications
     thematic_score = _thematic_relevance_score(author_data)
 
     # Weighted combination (all [0,1])
-    value = 0.30 * single_ratio + 0.25 * position_score + 0.25 * diversity_score + 0.20 * thematic_score
+    value = 0.35 * single_ratio + 0.20 * position_score + 0.25 * diversity_score + 0.20 * thematic_score
     value = min(max(value, 0.0), 1.0)
 
     return IndicatorResult(
@@ -167,8 +169,8 @@ def _position_anomaly_score(stats: dict, author_data: AuthorData) -> float:
     middle_count = positions.get("middle", 0)
     middle_ratio = middle_count / total
 
-    # Only suspicious if author has many publications (> 10)
-    if (author_data.profile.publication_count or 0) < 10:
+    # Only suspicious if author has several publications (> 5)
+    if (author_data.profile.publication_count or 0) < 5:
         return 0.0
 
     # High middle ratio for prolific author = suspicious

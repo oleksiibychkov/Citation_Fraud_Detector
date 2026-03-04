@@ -131,10 +131,10 @@ class TestComputeANA:
         assert r_lenient.value <= r_default.value
 
     def test_few_publications_no_position_penalty(self):
-        """Author with < 10 pubs shouldn't get position anomaly."""
+        """Author with < 5 pubs shouldn't get position anomaly."""
         pubs = [
             _make_pub("W1", co_authors=[_ca("F1", position="first"), _ca("A1", position="middle")]),
         ]
-        ad = AuthorData(profile=_make_profile(publication_count=5), publications=pubs, citations=[])
+        ad = AuthorData(profile=_make_profile(publication_count=4), publications=pubs, citations=[])
         result = compute_ana(ad)
         assert result.details["position_anomaly_score"] == 0.0

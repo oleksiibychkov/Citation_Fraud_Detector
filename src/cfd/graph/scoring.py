@@ -5,7 +5,7 @@ from __future__ import annotations
 from cfd.config.settings import Settings
 from cfd.graph.metrics import IndicatorResult
 
-# Full weights for 23 indicators (sum = 1.0)
+# Weights for 27 indicators (zero-exclusion weighted average normalizes automatically)
 DEFAULT_WEIGHTS: dict[str, float] = {
     "SCR": 0.07,
     "MCR": 0.09,
@@ -30,6 +30,10 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "CPC": 0.02,
     "JSCR": 0.04,
     "COERCE": 0.03,
+    "CDF": 0.06,
+    "HIA": 0.05,
+    "CCL": 0.04,
+    "LRHC": 0.04,
 }
 
 CONFIDENCE_LEVELS: list[tuple[float, float, str]] = [
@@ -125,7 +129,7 @@ def _is_triggered(indicator: IndicatorResult, settings: Settings) -> bool:
     if itype == "PAGERANK":
         return value > settings.pagerank_threshold
     if itype == "COMMUNITY":
-        return value > 0.5
+        return value > 0.4
     if itype == "CLIQUE":
         return value > 0.5
     if itype == "RING":
@@ -150,6 +154,14 @@ def _is_triggered(indicator: IndicatorResult, settings: Settings) -> bool:
         return value > 0.3
     if itype == "COERCE":
         return value > 0.3
+    if itype == "CDF":
+        return value > 0.3
+    if itype == "HIA":
+        return value > 0.4
+    if itype == "CCL":
+        return value > 0.4
+    if itype == "LRHC":
+        return value > 0.3
 
     return False
 
@@ -167,7 +179,7 @@ def get_trigger_threshold(indicator_type: str, settings: Settings) -> float:
         "EIGEN": settings.eigenvector_threshold,
         "BETWEENNESS": settings.betweenness_threshold,
         "PAGERANK": settings.pagerank_threshold,
-        "COMMUNITY": 0.5,
+        "COMMUNITY": 0.4,
         "CLIQUE": 0.5,
         "RING": 0.3,
         "CV": 0.4,
@@ -180,6 +192,10 @@ def get_trigger_threshold(indicator_type: str, settings: Settings) -> float:
         "CPC": 0.3,
         "JSCR": 0.3,
         "COERCE": 0.3,
+        "CDF": 0.3,
+        "HIA": 0.4,
+        "CCL": 0.4,
+        "LRHC": 0.3,
     }
     return thresholds.get(indicator_type, 0.5)
 

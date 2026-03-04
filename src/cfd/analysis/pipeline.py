@@ -9,6 +9,7 @@ from cfd.analysis.authorship import compute_ana
 from cfd.analysis.baselines import get_baseline
 from cfd.analysis.cannibalism import compute_cc
 from cfd.analysis.coercive import detect_coercive_citations
+from cfd.analysis.discriminators import compute_ccl, compute_cdf, compute_hia, compute_lrhc
 from cfd.analysis.context import contextual_check
 from cfd.analysis.cross_platform import compute_cpc
 from cfd.analysis.eligibility import check_eligibility
@@ -222,7 +223,9 @@ class AnalysisPipeline:
                     min_community_size=settings.min_community_size,
                 )
                 indicators.append(community_to_indicator(
-                    community_result, min_community_size=settings.min_community_size,
+                    community_result,
+                    min_community_size=settings.min_community_size,
+                    density_ratio_threshold=settings.community_density_ratio_threshold,
                 ))
             except Exception:
                 logger.warning("Community detection failed", exc_info=True)
@@ -379,6 +382,32 @@ class AnalysisPipeline:
         except Exception:
             logger.warning("COERCE detection failed", exc_info=True)
             warnings.append("COERCE detection failed")
+
+        # Step 5k: Discriminative indicators (OpenAlex-native signals)
+        try:
+            indicators.append(compute_cdf(author_data))
+        except Exception:
+            logger.warning("CDF computation failed", exc_info=True)
+            warnings.append("CDF computation failed")
+
+        try:
+            disc_baseline = get_baseline(author_data.profile.discipline)
+            indicators.append(compute_hia(author_data, disc_baseline))
+        except Exception:
+            logger.warning("HIA computation failed", exc_info=True)
+            warnings.append("HIA computation failed")
+
+        try:
+            indicators.append(compute_ccl(author_data))
+        except Exception:
+            logger.warning("CCL computation failed", exc_info=True)
+            warnings.append("CCL computation failed")
+
+        try:
+            indicators.append(compute_lrhc(author_data))
+        except Exception:
+            logger.warning("LRHC computation failed", exc_info=True)
+            warnings.append("LRHC computation failed")
 
         # Step 5h: Contextual Anomaly Analysis (must run after all other indicators)
         try:
