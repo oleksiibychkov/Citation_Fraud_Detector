@@ -31,7 +31,7 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "JSCR": 0.04,
     "COERCE": 0.03,
     "CDF": 0.06,
-    "HIA": 0.05,
+    "HIA": 0.10,
     "CCL": 0.04,
     "LRHC": 0.04,
 }
@@ -46,7 +46,7 @@ CONFIDENCE_LEVELS: list[tuple[float, float, str]] = [
 
 # Indicator tier classification for hierarchical scoring
 # Tier 1 (hard evidence): auto-elevate to "high" if any triggers
-TIER1_HARD_EVIDENCE = {"CLIQUE", "RING"}
+TIER1_HARD_EVIDENCE = {"CLIQUE", "RING", "HIA"}
 # Tier 2 (structural/contextual): 3+ triggered → min "moderate"
 TIER2_CONTEXTUAL = {"COMMUNITY", "RLA", "ANA", "GIC", "CB", "CC", "SSD", "CPC"}
 # Tier 3 (dynamic/temporal): supporting evidence
@@ -200,6 +200,25 @@ def get_trigger_threshold(indicator_type: str, settings: Settings) -> float:
     return thresholds.get(indicator_type, 0.5)
 
 
+def _apply_hia_boost(score: float, hia_value: float) -> float:
+    """Apply nonlinear HIA boost when h-index anomaly exceeds thresholds.
+
+    Step function:
+    - HIA > 0.7 → +0.4
+    - HIA > 0.5 → +0.2
+    - HIA > 0.3 → +0.1
+    """
+    thresholds = [0.3, 0.5, 0.7]
+    boosts = [0.1, 0.2, 0.4]
+    hia_boost = 0.0
+    for thr, boost in zip(thresholds, boosts):
+        if hia_value > thr:
+            hia_boost = boost
+        else:
+            break
+    return min(1.0, score + hia_boost)
+
+
 def _apply_tier_elevation(
     score: float,
     confidence: str,
@@ -282,6 +301,14 @@ def compute_fraud_score(
 
     score = weighted_sum / total_weight if total_weight > 0 else 0.0
     score = min(max(score, 0.0), 1.0)
+
+    # Apply HIA nonlinear boost
+    hia_value = 0.0
+    for ind in indicators:
+        if ind.indicator_type == "HIA":
+            hia_value = ind.value
+            break
+    score = _apply_hia_boost(score, hia_value)
 
     # Determine base confidence level
     confidence = "normal"
