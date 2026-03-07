@@ -70,6 +70,7 @@
         "compare": "Snapshot Compare",
         "antiranking": "Anti-Ranking",
         "settings": "Settings",
+        "journal_dossier": "Journal Dossier",
         "language": "Language",
 
         "overview_header": "Watchlist Overview",
@@ -315,5 +316,50 @@
         "h_index": "h-index",
         "citation_count": "Citations",
         "publication_count": "Publications"
+    },
+    "journal": {
+        "header": "Journal Dossier",
+        "caption": "Citation manipulation analysis for scientific journals. Enter a journal name or ISSN to begin.",
+        "name_label": "Journal name",
+        "issn_label": "ISSN",
+        "analyze_btn": "Analyze Journal",
+        "input_required": "Journal name or ISSN is required.",
+        "analyzing_spinner": "Analyzing journal...",
+        "no_data": "Insufficient data for journal analysis.",
+        "profile_header": "Journal Profile",
+        "name_metric": "Journal",
+        "h_index_metric": "h-index",
+        "works_metric": "Works",
+        "citations_metric": "Citations",
+        "publisher_metric": "Publisher",
+        "type_metric": "Type",
+        "oa_metric": "Open Access",
+        "country_metric": "Country",
+        "score_header": "Journal Manipulation Score",
+        "indicators_header": "Journal Indicators",
+        "warnings_header": "Warnings",
+        "conclusion_header": "Conclusion",
+        "manipulation_score": "Manipulation score",
+        "triggered_header": "Triggered indicators (threshold exceeded)",
+        "normal_header": "Normal indicators (within threshold)",
+        "triggered_list": "Triggered indicators:"
+    },
+    "journal_indicator_info": {
+        "J_SCR": ["Journal Self-Citation Ratio", "Fraction of citations coming from within the same journal. High self-citation rates may indicate editorial manipulation to inflate impact factor."],
+        "J_MCR": ["Journal Mutual Citation Cartel", "Detects abnormally high citation exchange between specific journals — a pattern of mutual boosting to inflate metrics."],
+        "J_TA": ["Journal Temporal Anomaly", "Detects unnatural spikes in citation counts that deviate from the journal's historical trend (Z-score analysis)."],
+        "J_HIA": ["Journal h-Index Anomaly", "Compares actual h-index with expected value based on total citations and works count. Anomalously high h-index may indicate citation manipulation."],
+        "J_CDF": ["Citation Distribution Fairness", "Analyzes how citations are distributed across the journal's articles. Too uniform distribution (low Gini) suggests artificial citation boosting across all papers."],
+        "J_COERCE": ["Coercive Citation Detection", "Detects signs of editorial pressure on authors to cite the journal's own papers. High self-reference ratio combined with recent increase is a key signal."],
+        "J_EC": ["Editorial Concentration", "Measures how concentrated authorship is — whether a few authors dominate the journal's publications, suggesting potential editorial manipulation."],
+        "J_CB": ["Journal Citation Bottleneck", "Fraction of external citations coming from a single journal. High concentration indicates dependence on one citation source."],
+        "J_GROWTH": ["Publication Growth Anomaly", "Detects unnatural jumps in publication volume that may indicate lowered quality standards to increase article count."]
+    },
+    "journal_conclusions": {
+        "normal": "No signs of citation manipulation detected for this journal. Citation patterns are consistent with normal academic publishing practices.",
+        "low": "Minor deviations from typical journal citation patterns detected. These may be natural variations. Periodic monitoring is recommended.",
+        "moderate": "Several indicators show deviations from expected citation patterns. This requires further investigation. Review triggered indicators and compare with similar journals in the discipline.",
+        "high": "Significant anomalies detected across multiple journal citation indicators. The pattern is consistent with possible impact factor manipulation. Recommendation: detailed analysis by editorial ethics committee.",
+        "critical": "Compelling signs of systematic citation manipulation detected. Multiple independent indicators point to practices such as: excessive self-citation, citation cartels, coercive citation policies. Recommendation: immediate review by publishing ethics bodies."
     }
 }
