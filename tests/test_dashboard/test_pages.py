@@ -407,46 +407,47 @@ class TestDossier:
 
 
 class TestDashboardApp:
-    def test_main_overview(self, monkeypatch):
-        mock_st = MagicMock()
-        mock_st.sidebar.radio.return_value = "\u041e\u0433\u043b\u044f\u0434 \u0441\u043f\u043e\u0441\u0442\u0435\u0440\u0435\u0436\u0435\u043d\u044c"
-        mock_st.session_state = {}
-        monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
-
-        with patch("cfd.dashboard.views.overview.render") as mock_render:
-            from cfd.dashboard.app import main
-            main()
-            mock_render.assert_called_once()
-
     def test_main_dossier(self, monkeypatch):
+        """Test that main() routes to dossier when user is authenticated."""
         mock_st = MagicMock()
-        mock_st.sidebar.radio.return_value = "\u0414\u043e\u0441\u044c\u0454 \u0430\u0432\u0442\u043e\u0440\u0430"
-        mock_st.session_state = {}
+        mock_st.session_state = {"lang": "ua"}
+        mock_st.sidebar.selectbox.return_value = "Українська"
+        mock_st.sidebar.radio.return_value = "dossier"
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
-        with patch("cfd.dashboard.views.dossier.render") as mock_render:
+        user = {"surname": "Test", "orcid": "0000-0000-0000-0000", "role": "user"}
+        with patch("cfd.dashboard.auth.require_auth", return_value=user), \
+             patch("cfd.dashboard.auth.is_admin", return_value=False), \
+             patch("cfd.dashboard.views.dossier.render") as mock_render:
             from cfd.dashboard.app import main
             main()
             mock_render.assert_called_once()
 
-    def test_main_compare(self, monkeypatch):
+    def test_main_admin_sees_journal_dossier(self, monkeypatch):
+        """Test that admin user can access journal_dossier page."""
         mock_st = MagicMock()
-        mock_st.sidebar.radio.return_value = "\u041f\u043e\u0440\u0456\u0432\u043d\u044f\u043d\u043d\u044f \u0437\u043d\u0456\u043c\u043a\u0456\u0432"
-        mock_st.session_state = {}
+        mock_st.session_state = {"lang": "en"}
+        mock_st.sidebar.selectbox.return_value = "English"
+        mock_st.sidebar.radio.return_value = "journal_dossier"
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
-        with patch("cfd.dashboard.views.compare.render") as mock_render:
+        user = {"surname": "Admin", "orcid": "0000-0000-0000-0001", "role": "admin"}
+        with patch("cfd.dashboard.auth.require_auth", return_value=user), \
+             patch("cfd.dashboard.auth.is_admin", return_value=True), \
+             patch("cfd.dashboard.views.journal_dossier.render") as mock_render:
             from cfd.dashboard.app import main
             main()
             mock_render.assert_called_once()
 
-    def test_main_antiranking(self, monkeypatch):
+    def test_main_unauthenticated_returns_early(self, monkeypatch):
+        """Test that main() returns early when user is not authenticated."""
         mock_st = MagicMock()
-        mock_st.sidebar.radio.return_value = "\u0410\u043d\u0442\u0438\u0440\u0435\u0439\u0442\u0438\u043d\u0433"
-        mock_st.session_state = {}
+        mock_st.session_state = {"lang": "ua"}
+        mock_st.sidebar.selectbox.return_value = "Українська"
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
-        with patch("cfd.dashboard.views.antiranking.render") as mock_render:
+        with patch("cfd.dashboard.auth.require_auth", return_value=None):
             from cfd.dashboard.app import main
             main()
-            mock_render.assert_called_once()
+            # No radio should be called when not authenticated
+            mock_st.sidebar.radio.assert_not_called()

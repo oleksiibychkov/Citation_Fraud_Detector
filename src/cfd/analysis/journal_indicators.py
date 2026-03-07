@@ -43,14 +43,6 @@ def compute_j_mcr(journal_data: JournalData) -> IndicatorResult:
         if c.source_journal_id and c.source_journal_id != our_id:
             incoming[c.source_journal_id] += 1
 
-    # Outgoing: how many times we cite each journal (from references)
-    outgoing: Counter[str] = Counter()
-    for work in journal_data.works:
-        for ref_id in work.references_list:
-            # We don't have journal mapping for references, so use citing_journals as proxy
-            pass
-
-    # Use citing_journals data which tracks who cites us
     total_incoming = sum(incoming.values())
     if total_incoming == 0:
         return IndicatorResult("J_MCR", 0.0, {"status": "no_incoming_citations"})
@@ -206,13 +198,11 @@ def compute_j_coerce(journal_data: JournalData) -> IndicatorResult:
     if not journal_data.citations:
         return IndicatorResult("J_COERCE", 0.0, {"status": "no_citations"})
 
-    our_id = journal_data.profile.openalex_id
-
     # Check references in journal's own works pointing back to same journal
     total_refs = 0
     self_refs = 0
+    work_ids_in_journal = {w.work_id for w in journal_data.works}
     for work in journal_data.works:
-        work_ids_in_journal = {w.work_id for w in journal_data.works}
         for ref in work.references_list:
             total_refs += 1
             if ref in work_ids_in_journal:
