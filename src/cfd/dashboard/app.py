@@ -13,25 +13,31 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Stable internal page keys (never change with language)
-_PAGE_KEYS = ["overview", "dossier", "compare", "antiranking", "settings"]
+# Active pages (others commented out for now)
+_PAGE_KEYS = [
+    "dossier",
+    "settings",
+    # "overview",
+    # "compare",
+    # "antiranking",
+]
 
 # Map page key -> translation key in locale
 _PAGE_I18N = {
-    "overview": "dashboard.overview",
     "dossier": "dashboard.dossier",
-    "compare": "dashboard.compare",
-    "antiranking": "dashboard.antiranking",
     "settings": "dashboard.settings",
+    # "overview": "dashboard.overview",
+    # "compare": "dashboard.compare",
+    # "antiranking": "dashboard.antiranking",
 }
 
 # Map page key -> module to import
 _PAGE_MODULES = {
-    "overview": "cfd.dashboard.views.overview",
     "dossier": "cfd.dashboard.views.dossier",
-    "compare": "cfd.dashboard.views.compare",
-    "antiranking": "cfd.dashboard.views.antiranking",
     "settings": "cfd.dashboard.views.settings",
+    # "overview": "cfd.dashboard.views.overview",
+    # "compare": "cfd.dashboard.views.compare",
+    # "antiranking": "cfd.dashboard.views.antiranking",
 }
 
 
@@ -58,9 +64,6 @@ def main():
     set_language(lang)
 
     st.sidebar.title(t("dashboard.app_title"))
-
-    # Build display labels from stable keys
-    page_labels = [t(_PAGE_I18N[k]) for k in _PAGE_KEYS]
 
     # Use format_func so the radio stores the stable key, not the translated label
     selected_key = st.sidebar.radio(

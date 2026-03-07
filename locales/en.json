@@ -159,6 +159,14 @@
         "params_changed": "Parameters changed: {count}",
         "all_defaults": "All parameters are default",
 
+        "clear_db_header": "Clear Database",
+        "clear_db_warning": "This will permanently delete ALL data from the database: authors, publications, citations, analysis results, watchlist entries. This action cannot be undone!",
+        "clear_db_btn": "Clear All Data",
+        "clear_db_success": "Database cleared successfully ({cleared} tables).",
+        "clear_db_partial": "Partially cleared: {cleared}/{total} tables. Some tables could not be cleared.",
+        "clear_db_error": "Failed to clear database: {error}",
+        "clear_db_no_connection": "No database connection configured.",
+
         "disclaimer_text": "This is an algorithmic suspicion score, not a final verdict. Citation patterns may have legitimate explanations (narrow specialization, review articles, trending topics). Results should be interpreted by qualified experts and verified against multiple data sources.",
 
         "score_dynamics_title": "Suspicion Score Dynamics",

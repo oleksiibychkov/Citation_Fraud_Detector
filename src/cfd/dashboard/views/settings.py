@@ -48,6 +48,25 @@ _THRESHOLD_GROUPS: dict[str, list[tuple]] = {
     ],
 }
 
+# Tables to clear (in order that respects foreign keys)
+_DB_TABLES = [
+    "report_evidence",
+    "theorem_results",
+    "indicators",
+    "fraud_scores",
+    "snapshots",
+    "cliques",
+    "communities",
+    "author_connections",
+    "peer_groups",
+    "citations",
+    "publications",
+    "watchlist",
+    "audit_log",
+    "discipline_baselines",
+    "authors",
+]
+
 
 def render():
     """Render the settings page."""
@@ -116,3 +135,43 @@ def render():
             st.warning(t("dashboard.params_changed", count=len(overrides)))
         else:
             st.success(t("dashboard.all_defaults"))
+
+    # --- Clear database section ---
+    st.markdown("---")
+    st.subheader(t("dashboard.clear_db_header"))
+    st.warning(t("dashboard.clear_db_warning"))
+
+    if st.button(t("dashboard.clear_db_btn"), type="primary"):
+        _clear_database()
+
+
+def _clear_database():
+    """Delete all data from all database tables."""
+    try:
+        settings = Settings()
+        if not settings.supabase_url or not settings.supabase_key:
+            st.error(t("dashboard.clear_db_no_connection"))
+            return
+
+        from cfd.db.client import get_supabase_client
+
+        client = get_supabase_client(settings)
+
+        cleared = 0
+        errors = []
+        for table in _DB_TABLES:
+            try:
+                # Delete all rows (neq filter matches everything)
+                client.table(table).delete().neq("id", -999999).execute()
+                cleared += 1
+            except Exception as e:
+                errors.append(f"{table}: {e}")
+
+        if errors:
+            st.warning(t("dashboard.clear_db_partial", cleared=cleared, total=len(_DB_TABLES)))
+            for err in errors:
+                st.caption(err)
+        else:
+            st.success(t("dashboard.clear_db_success", cleared=cleared))
+    except Exception as e:
+        st.error(t("dashboard.clear_db_error", error=str(e)))
