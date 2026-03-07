@@ -29,7 +29,7 @@ def get_language() -> str:
     return _current_lang.get()
 
 
-def t(key: str, lang: str | None = None, **kwargs) -> str:
+def t(key: str, lang: str | None = None, **kwargs) -> str | list:
     """Translate a dotted key path, e.g. t("error.author_not_found", author="Smith").
 
     Args:
@@ -52,4 +52,6 @@ def t(key: str, lang: str | None = None, **kwargs) -> str:
             return value.format(**kwargs) if kwargs else value
         except KeyError:
             return value
+    if isinstance(value, list):
+        return value
     return key

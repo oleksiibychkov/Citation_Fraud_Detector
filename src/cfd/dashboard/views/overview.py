@@ -1,50 +1,40 @@
-"""Огляд спостережень — таблиця з кольоровими оцінками та фільтрами."""
+"""Watchlist overview — table with colored scores and filters."""
 
 from __future__ import annotations
 
 import streamlit as st
 
+from cfd.i18n.translator import t
 from cfd.visualization.colors import LEVEL_COLORS
 
 VALID_LEVELS = {"normal", "low", "moderate", "high", "critical"}
 
-LEVEL_LABELS = {
-    "normal": "НОРМА",
-    "low": "НИЗЬКИЙ",
-    "moderate": "ПОМІРНИЙ",
-    "high": "ВИСОКИЙ",
-    "critical": "КРИТИЧНИЙ",
-}
-
 
 def render():
     """Render the overview / watchlist page."""
-    st.header("Огляд спостережень")
+    st.header(t("dashboard.overview_header"))
 
     entries = _load_watchlist()
 
     if not entries:
-        st.info(
-            "Список спостережень порожній. "
-            "Використайте `cfd watchlist add` для додавання авторів, "
-            "або перейдіть до «Досьє автора» для аналізу."
-        )
+        st.info(t("dashboard.overview_empty"))
         return
 
-    # Фільтри
+    # Filters
     col1, col2 = st.columns(2)
     with col1:
-        min_score = st.slider("Мін. оцінка підозрілості", 0.0, 1.0, 0.0, 0.05)
+        min_score = st.slider(t("dashboard.min_score_slider"), 0.0, 1.0, 0.0, 0.05)
     with col2:
-        level_options = list(LEVEL_LABELS.values())
-        level_filter_ua = st.multiselect(
-            "Рівень ризику",
-            level_options,
-            default=level_options,
+        level_keys = list(VALID_LEVELS)
+        level_display = {k: t(f"level_labels.{k}") for k in level_keys}
+        display_options = list(level_display.values())
+        level_filter_display = st.multiselect(
+            t("dashboard.risk_level_filter"),
+            display_options,
+            default=display_options,
         )
-        # Map back to English keys
-        ua_to_en = {v: k for k, v in LEVEL_LABELS.items()}
-        level_filter = [ua_to_en[la] for la in level_filter_ua if la in ua_to_en]
+        display_to_key = {v: k for k, v in level_display.items()}
+        level_filter = [display_to_key[la] for la in level_filter_display if la in display_to_key]
 
     filtered = [
         e for e in entries
@@ -53,25 +43,25 @@ def render():
     ]
 
     if not filtered:
-        st.warning("Жодний запис не відповідає поточним фільтрам.")
+        st.warning(t("dashboard.no_filter_results"))
         return
 
-    # Таблиця
+    # Table
     for entry in filtered:
         level = entry.get("confidence_level", "normal") or "normal"
         if level not in VALID_LEVELS:
             level = "normal"
         color = LEVEL_COLORS.get(level, "#999999")
         score = entry.get("fraud_score", 0) or 0
-        level_ua = LEVEL_LABELS.get(level, level.upper())
+        level_label = t(f"level_labels.{level}")
 
         col_name, col_score, col_level, col_reason = st.columns([3, 1, 1, 3])
         with col_name:
-            st.write(f"**{entry.get('author_name', 'Невідомий')}**")
+            st.write(f"**{entry.get('author_name', t('dashboard.unknown_author'))}**")
         with col_score:
             st.markdown(f"<span style='color:{color};font-weight:bold'>{score:.4f}</span>", unsafe_allow_html=True)
         with col_level:
-            st.markdown(f"<span style='color:{color}'>{level_ua}</span>", unsafe_allow_html=True)
+            st.markdown(f"<span style='color:{color}'>{level_label}</span>", unsafe_allow_html=True)
         with col_reason:
             st.write(entry.get("reason", "\u2014"))
 
@@ -107,7 +97,7 @@ def _load_watchlist() -> list[dict]:
             latest_score = score_repo.get_latest_by_author(author_id) if author_id is not None else None
 
             enriched.append({
-                "author_name": (author or {}).get("full_name") or (author or {}).get("surname", "Невідомий"),
+                "author_name": (author or {}).get("full_name") or (author or {}).get("surname", t("dashboard.unknown_author")),
                 "fraud_score": (latest_score or {}).get("score") or 0,
                 "confidence_level": (latest_score or {}).get("confidence_level") or "normal",
                 "reason": entry.get("reason", "\u2014"),

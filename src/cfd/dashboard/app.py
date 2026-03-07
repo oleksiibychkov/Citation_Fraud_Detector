@@ -4,49 +4,77 @@ from __future__ import annotations
 
 import streamlit as st
 
+from cfd.i18n.translator import set_language, t
+
 st.set_page_config(
-    page_title="Аналіз публікаційної активності",
+    page_title="Citation Fraud Detector",
     page_icon="\U0001f50d",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+# Stable internal page keys (never change with language)
+_PAGE_KEYS = ["overview", "dossier", "compare", "antiranking", "settings"]
+
+# Map page key -> translation key in locale
+_PAGE_I18N = {
+    "overview": "dashboard.overview",
+    "dossier": "dashboard.dossier",
+    "compare": "dashboard.compare",
+    "antiranking": "dashboard.antiranking",
+    "settings": "dashboard.settings",
+}
+
+# Map page key -> module to import
+_PAGE_MODULES = {
+    "overview": "cfd.dashboard.views.overview",
+    "dossier": "cfd.dashboard.views.dossier",
+    "compare": "cfd.dashboard.views.compare",
+    "antiranking": "cfd.dashboard.views.antiranking",
+    "settings": "cfd.dashboard.views.settings",
+}
+
+
+def _get_lang() -> str:
+    """Return current language from session state."""
+    return st.session_state.get("lang", "ua")
+
 
 def main():
     """Main dashboard entry point."""
-    st.sidebar.title("Аналіз публікаційної активності")
+    # Language selector at the top of sidebar
+    lang_options = {"Українська": "ua", "English": "en"}
+    lang_label = st.sidebar.selectbox(
+        "Language / Мова",
+        list(lang_options.keys()),
+        index=0 if _get_lang() == "ua" else 1,
+        key="lang_selector",
+    )
+    lang = lang_options[lang_label]
+    if st.session_state.get("lang") != lang:
+        st.session_state["lang"] = lang
+        set_language(lang)
+        st.rerun()
+    set_language(lang)
 
-    page = st.sidebar.radio(
-        "Навігація",
-        [
-            "Огляд спостережень",
-            "Досьє автора",
-            "Порівняння знімків",
-            "Антирейтинг",
-            "Налаштування",
-        ],
+    st.sidebar.title(t("dashboard.app_title"))
+
+    # Build display labels from stable keys
+    page_labels = [t(_PAGE_I18N[k]) for k in _PAGE_KEYS]
+
+    # Use format_func so the radio stores the stable key, not the translated label
+    selected_key = st.sidebar.radio(
+        t("dashboard.nav_label"),
+        _PAGE_KEYS,
+        format_func=lambda k: t(_PAGE_I18N[k]),
+        key="nav_page",
     )
 
-    if page == "Огляд спостережень":
-        from cfd.dashboard.pages.overview import render
+    # Route to the selected page
+    import importlib
 
-        render()
-    elif page == "Досьє автора":
-        from cfd.dashboard.pages.dossier import render
-
-        render()
-    elif page == "Порівняння знімків":
-        from cfd.dashboard.pages.compare import render
-
-        render()
-    elif page == "Антирейтинг":
-        from cfd.dashboard.pages.antiranking import render
-
-        render()
-    elif page == "Налаштування":
-        from cfd.dashboard.pages.settings import render
-
-        render()
+    module = importlib.import_module(_PAGE_MODULES[selected_key])
+    module.render()
 
 
 if __name__ == "__main__":

@@ -610,36 +610,36 @@ class TestDashboardBranches:
         self.mock_st.columns.side_effect = _columns
         self.mock_st.tabs.return_value = [mock_col] * 5
         # Import modules first to ensure they exist before patching
-        import cfd.dashboard.pages.antiranking  # noqa: F401
-        import cfd.dashboard.pages.compare  # noqa: F401
-        import cfd.dashboard.pages.dossier  # noqa: F401
-        import cfd.dashboard.pages.overview  # noqa: F401
-        monkeypatch.setattr("cfd.dashboard.pages.overview.st", self.mock_st)
-        monkeypatch.setattr("cfd.dashboard.pages.antiranking.st", self.mock_st)
-        monkeypatch.setattr("cfd.dashboard.pages.compare.st", self.mock_st)
-        monkeypatch.setattr("cfd.dashboard.pages.dossier.st", self.mock_st)
+        import cfd.dashboard.views.antiranking  # noqa: F401
+        import cfd.dashboard.views.compare  # noqa: F401
+        import cfd.dashboard.views.dossier  # noqa: F401
+        import cfd.dashboard.views.overview  # noqa: F401
+        monkeypatch.setattr("cfd.dashboard.views.overview.st", self.mock_st)
+        monkeypatch.setattr("cfd.dashboard.views.antiranking.st", self.mock_st)
+        monkeypatch.setattr("cfd.dashboard.views.compare.st", self.mock_st)
+        monkeypatch.setattr("cfd.dashboard.views.dossier.st", self.mock_st)
 
     def test_overview_invalid_level_fallback(self):
         """Overview falls back to 'normal' for unknown confidence levels."""
-        from cfd.dashboard.pages.overview import render
+        from cfd.dashboard.views.overview import render
         self.mock_st.slider.return_value = 0.0
         self.mock_st.multiselect.return_value = ["normal", "low", "moderate", "high", "critical"]
-        with patch("cfd.dashboard.pages.overview._load_watchlist", return_value=[
+        with patch("cfd.dashboard.views.overview._load_watchlist", return_value=[
             {"id": 1, "author_name": "Test", "fraud_score": 0.5, "confidence_level": "BOGUS_LEVEL"},
         ]):
             render()
 
     def test_antiranking_invalid_level_fallback(self):
         """Antiranking falls back to 'normal' for unknown levels."""
-        from cfd.dashboard.pages.antiranking import render
-        with patch("cfd.dashboard.pages.antiranking._load_ranking", return_value=[
+        from cfd.dashboard.views.antiranking import render
+        with patch("cfd.dashboard.views.antiranking._load_ranking", return_value=[
             {"author_name": "Test", "fraud_score": 0.5, "confidence_level": "UNKNOWN"},
         ]):
             render()
 
     def test_dossier_analysis_exception_fallback(self):
         """Dossier handles analysis exception gracefully."""
-        from cfd.dashboard.pages.dossier import _run_analysis
+        from cfd.dashboard.views.dossier import _run_analysis
         with patch("cfd.cli.main._build_strategy", side_effect=Exception("fail")):
             result, data, pipeline = _run_analysis("Test", None, None, "openalex")
         # Should return (None, None, None) and call st.error
@@ -647,11 +647,11 @@ class TestDashboardBranches:
 
     def test_compare_missing_metric(self):
         """Compare page handles missing metric value."""
-        from cfd.dashboard.pages.compare import render
+        from cfd.dashboard.views.compare import render
         self.mock_st.button.return_value = True
         self.mock_st.number_input.return_value = 1
         self.mock_st.slider.return_value = 5
-        with patch("cfd.dashboard.pages.compare._load_snapshots", return_value=[
+        with patch("cfd.dashboard.views.compare._load_snapshots", return_value=[
             {"fraud_score": 0.3, "created_at": "2024-01-01"},
             {"fraud_score": 0.5, "created_at": "2024-06-01"},
         ]):

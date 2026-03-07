@@ -34,10 +34,10 @@ def _mock_streamlit(monkeypatch):
     mock_st.spinner.return_value.__enter__ = MagicMock()
     mock_st.spinner.return_value.__exit__ = MagicMock(return_value=False)
 
-    monkeypatch.setattr("cfd.dashboard.pages.overview.st", mock_st)
-    monkeypatch.setattr("cfd.dashboard.pages.antiranking.st", mock_st)
-    monkeypatch.setattr("cfd.dashboard.pages.compare.st", mock_st)
-    monkeypatch.setattr("cfd.dashboard.pages.dossier.st", mock_st)
+    monkeypatch.setattr("cfd.dashboard.views.overview.st", mock_st)
+    monkeypatch.setattr("cfd.dashboard.views.antiranking.st", mock_st)
+    monkeypatch.setattr("cfd.dashboard.views.compare.st", mock_st)
+    monkeypatch.setattr("cfd.dashboard.views.dossier.st", mock_st)
     monkeypatch.setattr("cfd.dashboard.disclaimer.st", mock_st)
     return mock_st
 
@@ -60,9 +60,9 @@ class TestDisclaimer:
 
 class TestOverview:
     def test_render_with_entries(self, _mock_streamlit):
-        from cfd.dashboard.pages.overview import render
+        from cfd.dashboard.views.overview import render
 
-        with patch("cfd.dashboard.pages.overview._load_watchlist") as mock_load:
+        with patch("cfd.dashboard.views.overview._load_watchlist") as mock_load:
             mock_load.return_value = [
                 {"author_name": "Author A", "fraud_score": 0.8, "confidence_level": "high", "reason": "test"},
                 {"author_name": "Author B", "fraud_score": 0.2, "confidence_level": "low", "reason": "—"},
@@ -71,17 +71,17 @@ class TestOverview:
         _mock_streamlit.header.assert_called()
 
     def test_render_empty(self, _mock_streamlit):
-        from cfd.dashboard.pages.overview import render
+        from cfd.dashboard.views.overview import render
 
-        with patch("cfd.dashboard.pages.overview._load_watchlist", return_value=[]):
+        with patch("cfd.dashboard.views.overview._load_watchlist", return_value=[]):
             render()
         _mock_streamlit.info.assert_called()
 
     def test_render_no_match_filter(self, _mock_streamlit):
         _mock_streamlit.slider.return_value = 0.99
-        from cfd.dashboard.pages.overview import render
+        from cfd.dashboard.views.overview import render
 
-        with patch("cfd.dashboard.pages.overview._load_watchlist") as mock_load:
+        with patch("cfd.dashboard.views.overview._load_watchlist") as mock_load:
             mock_load.return_value = [
                 {"author_name": "A", "fraud_score": 0.1, "confidence_level": "normal"},
             ]
@@ -89,14 +89,14 @@ class TestOverview:
         _mock_streamlit.warning.assert_called()
 
     def test_load_watchlist_no_supabase(self):
-        from cfd.dashboard.pages.overview import _load_watchlist
+        from cfd.dashboard.views.overview import _load_watchlist
 
         with patch("cfd.config.settings.Settings", return_value=MagicMock(supabase_url="", supabase_key="")):
             result = _load_watchlist()
         assert result == []
 
     def test_load_watchlist_with_data(self):
-        from cfd.dashboard.pages.overview import _load_watchlist
+        from cfd.dashboard.views.overview import _load_watchlist
 
         mock_settings = MagicMock(supabase_url="https://test.co", supabase_key="key")
         mock_client = MagicMock()
@@ -117,7 +117,7 @@ class TestOverview:
         assert result[0]["author_name"] == "Test Author"
 
     def test_load_watchlist_exception(self):
-        from cfd.dashboard.pages.overview import _load_watchlist
+        from cfd.dashboard.views.overview import _load_watchlist
 
         with patch("cfd.config.settings.Settings", side_effect=Exception("fail")):
             result = _load_watchlist()
@@ -125,9 +125,9 @@ class TestOverview:
 
     def test_render_invalid_level(self, _mock_streamlit):
         """Entry with invalid level should fall back to 'normal'."""
-        from cfd.dashboard.pages.overview import render
+        from cfd.dashboard.views.overview import render
 
-        with patch("cfd.dashboard.pages.overview._load_watchlist") as mock_load:
+        with patch("cfd.dashboard.views.overview._load_watchlist") as mock_load:
             mock_load.return_value = [
                 {"author_name": "X", "fraud_score": 0.3, "confidence_level": "INVALID_LEVEL", "reason": "—"},
             ]
@@ -141,9 +141,9 @@ class TestOverview:
 
 class TestAntiranking:
     def test_render_with_entries(self, _mock_streamlit):
-        from cfd.dashboard.pages.antiranking import render
+        from cfd.dashboard.views.antiranking import render
 
-        with patch("cfd.dashboard.pages.antiranking._load_ranking") as mock_load:
+        with patch("cfd.dashboard.views.antiranking._load_ranking") as mock_load:
             mock_load.return_value = [
                 {"author_name": "A", "fraud_score": 0.8, "confidence_level": "high",
                  "h_index": 15, "citation_count": 300, "publication_count": 40},
@@ -152,14 +152,14 @@ class TestAntiranking:
         _mock_streamlit.header.assert_called()
 
     def test_render_empty(self, _mock_streamlit):
-        from cfd.dashboard.pages.antiranking import render
+        from cfd.dashboard.views.antiranking import render
 
-        with patch("cfd.dashboard.pages.antiranking._load_ranking", return_value=[]):
+        with patch("cfd.dashboard.views.antiranking._load_ranking", return_value=[]):
             render()
         _mock_streamlit.info.assert_called()
 
     def test_load_ranking_no_supabase(self):
-        from cfd.dashboard.pages.antiranking import _load_ranking
+        from cfd.dashboard.views.antiranking import _load_ranking
 
         with patch("cfd.config.settings.Settings",
                     return_value=MagicMock(supabase_url="", supabase_key="")):
@@ -167,7 +167,7 @@ class TestAntiranking:
         assert result == []
 
     def test_load_ranking_with_data(self):
-        from cfd.dashboard.pages.antiranking import _load_ranking
+        from cfd.dashboard.views.antiranking import _load_ranking
 
         mock_settings = MagicMock(supabase_url="https://t.co", supabase_key="k")
         mock_client = MagicMock()
@@ -184,14 +184,14 @@ class TestAntiranking:
         assert len(result) == 1
 
     def test_load_ranking_exception(self):
-        from cfd.dashboard.pages.antiranking import _load_ranking
+        from cfd.dashboard.views.antiranking import _load_ranking
 
         with patch("cfd.config.settings.Settings", side_effect=Exception("fail")):
             result = _load_ranking()
         assert result == []
 
     def test_export_csv(self, _mock_streamlit):
-        from cfd.dashboard.pages.antiranking import _export_csv
+        from cfd.dashboard.views.antiranking import _export_csv
         entries = [
             {"author_name": "A", "fraud_score": 0.8, "confidence_level": "high",
              "h_index": 15, "citation_count": 300, "publication_count": 40},
@@ -201,9 +201,9 @@ class TestAntiranking:
 
     def test_render_ascending(self, _mock_streamlit):
         _mock_streamlit.checkbox.return_value = True
-        from cfd.dashboard.pages.antiranking import render
+        from cfd.dashboard.views.antiranking import render
 
-        with patch("cfd.dashboard.pages.antiranking._load_ranking") as mock_load:
+        with patch("cfd.dashboard.views.antiranking._load_ranking") as mock_load:
             mock_load.return_value = [
                 {"author_name": "A", "fraud_score": 0.2, "confidence_level": "low",
                  "h_index": 5, "citation_count": 50, "publication_count": 10},
@@ -221,28 +221,28 @@ class TestAntiranking:
 class TestCompare:
     def test_render_no_button(self, _mock_streamlit):
         _mock_streamlit.button.return_value = False
-        from cfd.dashboard.pages.compare import render
+        from cfd.dashboard.views.compare import render
         render()
 
     def test_render_no_snapshots(self, _mock_streamlit):
-        from cfd.dashboard.pages.compare import render
+        from cfd.dashboard.views.compare import render
 
-        with patch("cfd.dashboard.pages.compare._load_snapshots", return_value=[]):
+        with patch("cfd.dashboard.views.compare._load_snapshots", return_value=[]):
             render()
         _mock_streamlit.info.assert_called()
 
     def test_render_one_snapshot(self, _mock_streamlit):
-        from cfd.dashboard.pages.compare import render
+        from cfd.dashboard.views.compare import render
 
-        with patch("cfd.dashboard.pages.compare._load_snapshots") as mock_load:
+        with patch("cfd.dashboard.views.compare._load_snapshots") as mock_load:
             mock_load.return_value = [{"fraud_score": 0.3, "h_index": 10}]
             render()
         _mock_streamlit.warning.assert_called()
 
     def test_render_two_snapshots(self, _mock_streamlit):
-        from cfd.dashboard.pages.compare import render
+        from cfd.dashboard.views.compare import render
 
-        with patch("cfd.dashboard.pages.compare._load_snapshots") as mock_load:
+        with patch("cfd.dashboard.views.compare._load_snapshots") as mock_load:
             mock_load.return_value = [
                 {"fraud_score": 0.5, "h_index": 15, "citation_count": 300,
                  "publication_count": 40, "algorithm_version": "5.0.0"},
@@ -254,9 +254,9 @@ class TestCompare:
         _mock_streamlit.warning.assert_called()
 
     def test_render_same_algo_version(self, _mock_streamlit):
-        from cfd.dashboard.pages.compare import render
+        from cfd.dashboard.views.compare import render
 
-        with patch("cfd.dashboard.pages.compare._load_snapshots") as mock_load:
+        with patch("cfd.dashboard.views.compare._load_snapshots") as mock_load:
             mock_load.return_value = [
                 {"fraud_score": 0.5, "h_index": 15, "citation_count": 300,
                  "publication_count": 40, "algorithm_version": "5.0.0"},
@@ -266,14 +266,14 @@ class TestCompare:
             render()
 
     def test_load_snapshots_exception(self, _mock_streamlit):
-        from cfd.dashboard.pages.compare import _load_snapshots
+        from cfd.dashboard.views.compare import _load_snapshots
 
         with patch("cfd.config.settings.Settings", side_effect=Exception("fail")):
             result = _load_snapshots(1, 5)
         assert result == []
 
     def test_load_snapshots_success(self):
-        from cfd.dashboard.pages.compare import _load_snapshots
+        from cfd.dashboard.views.compare import _load_snapshots
 
         mock_repo = MagicMock()
         mock_repo.get_by_author_id.return_value = [{"fraud_score": 0.5}]
@@ -284,11 +284,11 @@ class TestCompare:
         assert len(result) == 1
 
     def test_show_single(self, _mock_streamlit):
-        from cfd.dashboard.pages.compare import _show_single
+        from cfd.dashboard.views.compare import _show_single
         _show_single({"fraud_score": 0.3, "h_index": 10})
 
     def test_render_timeline(self, _mock_streamlit):
-        from cfd.dashboard.pages.compare import _render_timeline
+        from cfd.dashboard.views.compare import _render_timeline
         snapshots = [
             {"fraud_score": 0.5, "snapshot_date": "2024-01-15"},
             {"fraud_score": 0.3, "snapshot_date": "2024-01-01"},
@@ -298,9 +298,9 @@ class TestCompare:
 
     def test_render_non_numeric_metric(self, _mock_streamlit):
         """Metric with non-numeric value triggers ValueError branch."""
-        from cfd.dashboard.pages.compare import render
+        from cfd.dashboard.views.compare import render
 
-        with patch("cfd.dashboard.pages.compare._load_snapshots") as mock_load:
+        with patch("cfd.dashboard.views.compare._load_snapshots") as mock_load:
             mock_load.return_value = [
                 {"fraud_score": "bad", "h_index": 15, "citation_count": 300,
                  "publication_count": 40, "algorithm_version": "5.0.0"},
@@ -318,26 +318,26 @@ class TestCompare:
 class TestDossier:
     def test_render_no_button(self, _mock_streamlit):
         _mock_streamlit.button.return_value = False
-        from cfd.dashboard.pages.dossier import render
+        from cfd.dashboard.views.dossier import render
         render()
 
     def test_render_no_author_name(self, _mock_streamlit):
         _mock_streamlit.text_input.return_value = ""
-        from cfd.dashboard.pages.dossier import render
+        from cfd.dashboard.views.dossier import render
         render()
         _mock_streamlit.error.assert_called()
 
     def test_render_no_ids(self, _mock_streamlit):
         # First call returns author name, next two return ""
         _mock_streamlit.text_input.side_effect = ["TestAuthor", "", ""]
-        from cfd.dashboard.pages.dossier import render
+        from cfd.dashboard.views.dossier import render
         render()
 
     def test_render_analysis_fails(self, _mock_streamlit):
         _mock_streamlit.text_input.side_effect = ["TestAuthor", "123", ""]
-        from cfd.dashboard.pages.dossier import render
+        from cfd.dashboard.views.dossier import render
 
-        with patch("cfd.dashboard.pages.dossier._run_analysis", return_value=(None, None, None)):
+        with patch("cfd.dashboard.views.dossier._run_analysis", return_value=(None, None, None)):
             render()
         _mock_streamlit.error.assert_called()
 
@@ -364,15 +364,15 @@ class TestDossier:
         _mock_streamlit.session_state["dossier_author_data"] = author_data
         _mock_streamlit.session_state["dossier_pipeline"] = MagicMock()
 
-        from cfd.dashboard.pages.dossier import render
+        from cfd.dashboard.views.dossier import render
 
         mock_pipeline = MagicMock()
         mock_pipeline.analyze_from_data.return_value = result
-        with patch("cfd.dashboard.pages.dossier._run_analysis", return_value=(result, author_data, mock_pipeline)):
+        with patch("cfd.dashboard.views.dossier._run_analysis", return_value=(result, author_data, mock_pipeline)):
             render()
 
     def test_run_analysis_success(self, _mock_streamlit):
-        from cfd.dashboard.pages.dossier import _run_analysis
+        from cfd.dashboard.views.dossier import _run_analysis
 
         mock_pipeline = MagicMock()
         mock_result = MagicMock()
@@ -388,14 +388,14 @@ class TestDossier:
         assert result is not None
 
     def test_run_analysis_exception(self, _mock_streamlit):
-        from cfd.dashboard.pages.dossier import _run_analysis
+        from cfd.dashboard.views.dossier import _run_analysis
 
         with patch("cfd.config.settings.Settings", side_effect=Exception("fail")):
             result, data, pipeline = _run_analysis("Test", "123", "", "auto")
         assert result is None
 
     def test_render_visualizations(self, _mock_streamlit):
-        from cfd.dashboard.pages.dossier import _render_visualizations
+        from cfd.dashboard.views.dossier import _render_visualizations
         mock_data = MagicMock()
         mock_result = MagicMock()
         _render_visualizations(mock_data, mock_result)
@@ -413,7 +413,7 @@ class TestDashboardApp:
         mock_st.session_state = {}
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
-        with patch("cfd.dashboard.pages.overview.render") as mock_render:
+        with patch("cfd.dashboard.views.overview.render") as mock_render:
             from cfd.dashboard.app import main
             main()
             mock_render.assert_called_once()
@@ -424,7 +424,7 @@ class TestDashboardApp:
         mock_st.session_state = {}
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
-        with patch("cfd.dashboard.pages.dossier.render") as mock_render:
+        with patch("cfd.dashboard.views.dossier.render") as mock_render:
             from cfd.dashboard.app import main
             main()
             mock_render.assert_called_once()
@@ -435,7 +435,7 @@ class TestDashboardApp:
         mock_st.session_state = {}
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
-        with patch("cfd.dashboard.pages.compare.render") as mock_render:
+        with patch("cfd.dashboard.views.compare.render") as mock_render:
             from cfd.dashboard.app import main
             main()
             mock_render.assert_called_once()
@@ -446,7 +446,7 @@ class TestDashboardApp:
         mock_st.session_state = {}
         monkeypatch.setattr("cfd.dashboard.app.st", mock_st)
 
-        with patch("cfd.dashboard.pages.antiranking.render") as mock_render:
+        with patch("cfd.dashboard.views.antiranking.render") as mock_render:
             from cfd.dashboard.app import main
             main()
             mock_render.assert_called_once()

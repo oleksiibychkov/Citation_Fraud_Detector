@@ -323,12 +323,12 @@ class TestDossierVisualizationBranches:
         self.mock_st.session_state = {"lang": "ua"}
         self.mock_st.spinner.return_value.__enter__ = MagicMock()
         self.mock_st.spinner.return_value.__exit__ = MagicMock(return_value=False)
-        import cfd.dashboard.pages.dossier  # noqa: F401
-        monkeypatch.setattr("cfd.dashboard.pages.dossier.st", self.mock_st)
+        import cfd.dashboard.views.dossier  # noqa: F401
+        monkeypatch.setattr("cfd.dashboard.views.dossier.st", self.mock_st)
 
     def test_run_analysis_collect_fallback(self):
         """_run_analysis returns None when collect fails (no data to analyze)."""
-        from cfd.dashboard.pages.dossier import _run_analysis
+        from cfd.dashboard.views.dossier import _run_analysis
 
         mock_strategy = MagicMock()
         mock_strategy.collect.side_effect = Exception("collect fail")
@@ -345,14 +345,14 @@ class TestDossierVisualizationBranches:
 
     def test_render_visualizations_import_error(self):
         """_render_visualizations handles missing plotly."""
-        from cfd.dashboard.pages.dossier import _render_visualizations
+        from cfd.dashboard.views.dossier import _render_visualizations
 
         data = AuthorData(profile=_profile(), publications=[], citations=[])
         mock_result = MagicMock()
 
         with (
             patch(
-                "cfd.dashboard.pages.dossier.build_network_figure",
+                "cfd.dashboard.views.dossier.build_network_figure",
                 side_effect=ImportError("No plotly"),
                 create=True,
             ),
@@ -362,7 +362,7 @@ class TestDossierVisualizationBranches:
 
     def test_render_visualizations_exception(self):
         """_render_visualizations handles general exceptions."""
-        from cfd.dashboard.pages.dossier import _render_visualizations
+        from cfd.dashboard.views.dossier import _render_visualizations
 
         data = AuthorData(profile=_profile(), publications=[], citations=[])
         mock_result = MagicMock()
@@ -377,7 +377,7 @@ class TestDossierVisualizationBranches:
 
     def test_dossier_invalid_level_fallback(self):
         """Dossier falls back to 'normal' for unknown confidence level."""
-        from cfd.dashboard.pages.dossier import render
+        from cfd.dashboard.views.dossier import render
 
         mock_result = MagicMock()
         mock_result.author_profile = _profile()
@@ -401,7 +401,7 @@ class TestDossierVisualizationBranches:
         self.mock_st.selectbox.return_value = "openalex"
 
         with patch(
-            "cfd.dashboard.pages.dossier._run_analysis",
+            "cfd.dashboard.views.dossier._run_analysis",
             return_value=(mock_result, author_data, mock_pipeline),
         ):
             render()
@@ -426,18 +426,18 @@ class TestCompareBranches:
                               __exit__=MagicMock(return_value=False)) for _ in range(n)]
 
         self.mock_st.columns.side_effect = _columns
-        import cfd.dashboard.pages.compare  # noqa: F401
-        monkeypatch.setattr("cfd.dashboard.pages.compare.st", self.mock_st)
+        import cfd.dashboard.views.compare  # noqa: F401
+        monkeypatch.setattr("cfd.dashboard.views.compare.st", self.mock_st)
 
     def test_single_snapshot(self):
         """Compare shows single snapshot when only one available."""
-        from cfd.dashboard.pages.compare import render
+        from cfd.dashboard.views.compare import render
 
         self.mock_st.button.return_value = True
         self.mock_st.number_input.return_value = 1
         self.mock_st.slider.return_value = 5
 
-        with patch("cfd.dashboard.pages.compare._load_snapshots", return_value=[
+        with patch("cfd.dashboard.views.compare._load_snapshots", return_value=[
             {"fraud_score": 0.3, "created_at": "2024-01-01", "h_index": 10},
         ]):
             render()
@@ -446,7 +446,7 @@ class TestCompareBranches:
 
     def test_timeline_plotly_unavailable(self):
         """Timeline chart handles missing plotly."""
-        from cfd.dashboard.pages.compare import _render_timeline
+        from cfd.dashboard.views.compare import _render_timeline
 
         with patch.dict(sys.modules, {"plotly.graph_objects": None, "plotly": None}):
             _render_timeline([

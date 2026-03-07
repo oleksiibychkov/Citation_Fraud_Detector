@@ -536,16 +536,16 @@ class TestOverviewLevelFallback:
         self.mock_st.columns.side_effect = _columns
         self.mock_st.slider.return_value = 0.0
         self.mock_st.multiselect.return_value = ["normal"]
-        import cfd.dashboard.pages.overview  # noqa: F401
-        monkeypatch.setattr("cfd.dashboard.pages.overview.st", self.mock_st)
+        import cfd.dashboard.views.overview  # noqa: F401
+        monkeypatch.setattr("cfd.dashboard.views.overview.st", self.mock_st)
 
     def test_overview_bogus_level_normalized(self):
         """Overview normalizes bogus confidence level to 'normal'."""
-        from cfd.dashboard.pages.overview import render
+        from cfd.dashboard.views.overview import render
 
         # Include "normal" in filter since INVALID_LEVEL maps to "normal"
         self.mock_st.multiselect.return_value = ["normal", "low", "moderate", "high", "critical"]
-        with patch("cfd.dashboard.pages.overview._load_watchlist", return_value=[
+        with patch("cfd.dashboard.views.overview._load_watchlist", return_value=[
             {"id": 1, "author_name": "Test", "fraud_score": 0.5, "confidence_level": "INVALID_LEVEL"},
         ]):
             render()

@@ -12,13 +12,13 @@ def test_dashboard_app_importable():
 def test_dashboard_pages_importable():
     """All dashboard page modules can be imported."""
     for page in ("overview", "dossier", "compare", "antiranking"):
-        mod = importlib.import_module(f"cfd.dashboard.pages.{page}")
+        mod = importlib.import_module(f"cfd.dashboard.views.{page}")
         assert hasattr(mod, "render"), f"{page} missing render()"
 
 
 def test_dashboard_pages_render_callable():
     """All page render functions are callable."""
-    from cfd.dashboard.pages import antiranking, compare, dossier, overview
+    from cfd.dashboard.views import antiranking, compare, dossier, overview
 
     for mod in (overview, dossier, compare, antiranking):
         assert callable(mod.render)
