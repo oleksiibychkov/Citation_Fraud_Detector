@@ -13,9 +13,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Active pages (others commented out for now)
-_PAGE_KEYS = [
-    "dossier",
+# Pages available to all authenticated users
+_USER_PAGES = ["dossier"]
+
+# Pages available only to admin
+_ADMIN_PAGES = [
     "settings",
     # "overview",
     # "compare",
@@ -46,9 +48,8 @@ def _get_lang() -> str:
     return st.session_state.get("lang", "ua")
 
 
-def main():
-    """Main dashboard entry point."""
-    # Language selector at the top of sidebar
+def _setup_language():
+    """Setup language selector and return current lang."""
     lang_options = {"Українська": "ua", "English": "en"}
     lang_label = st.sidebar.selectbox(
         "Language / Мова",
@@ -63,12 +64,40 @@ def main():
         st.rerun()
     set_language(lang)
 
+
+def main():
+    """Main dashboard entry point."""
+    _setup_language()
+
+    # --- Authentication gate ---
+    from cfd.dashboard.auth import is_admin, logout, require_auth
+
+    user = require_auth()
+    if user is None:
+        return
+
+    # --- User is authenticated ---
     st.sidebar.title(t("dashboard.app_title"))
 
-    # Use format_func so the radio stores the stable key, not the translated label
+    # Show user info & logout
+    st.sidebar.markdown(f"**{user.get('surname', '')}**")
+    st.sidebar.caption(user.get("orcid", ""))
+    if st.sidebar.button(t("auth.logout_btn")):
+        logout()
+        st.rerun()
+
+    st.sidebar.markdown("---")
+
+    # Build page list based on role
+    admin = is_admin(user)
+    page_keys = list(_USER_PAGES)
+    if admin:
+        page_keys.extend(_ADMIN_PAGES)
+
+    # Navigation
     selected_key = st.sidebar.radio(
         t("dashboard.nav_label"),
-        _PAGE_KEYS,
+        page_keys,
         format_func=lambda k: t(_PAGE_I18N[k]),
         key="nav_page",
     )

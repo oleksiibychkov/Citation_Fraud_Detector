@@ -181,6 +181,20 @@
         "cpc": "Cross-Platform Consistency",
         "calibration": "Weight Calibration"
     },
+    "auth": {
+        "welcome_title": "Citation Fraud Detector",
+        "welcome_message": "To use the system, please register or log in with your surname and ORCID.",
+        "surname_label": "Surname (English)",
+        "orcid_label": "ORCID",
+        "submit_btn": "Log In / Register",
+        "logout_btn": "Log Out",
+        "surname_required": "Surname is required.",
+        "orcid_invalid": "Invalid ORCID format. Expected: 0000-0000-0000-0000",
+        "no_db": "Database connection is not configured.",
+        "registered": "Registration successful! Welcome.",
+        "register_failed": "Registration failed. Please try again.",
+        "error": "Authentication error: {error}"
+    },
     "api": {
         "unauthorized": "Authentication required. Provide a valid X-API-Key header.",
         "forbidden": "Insufficient permissions for this operation.",

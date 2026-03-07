@@ -112,6 +112,9 @@ class Settings(BaseSettings):
     notification_webhook_secret: str = ""
     notification_score_threshold: float = 0.1
 
+    # Admin ORCIDs (comma-separated)
+    admin_orcids: str = ""
+
     # Algorithm version
     algorithm_version: str = "5.0.0"
 
