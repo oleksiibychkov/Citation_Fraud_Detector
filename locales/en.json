@@ -202,8 +202,7 @@
         "registered": "Registration successful! Welcome.",
         "register_failed": "Registration failed. Please try again.",
         "verifying_orcid": "Verifying ORCID...",
-        "orcid_mismatch": "Surname does not match ORCID profile. You entered: \"{input}\", but ORCID shows: \"{actual}\". Please enter YOUR surname and ORCID.",
-        "orcid_not_found": "ORCID profile not found or has no public name. Please check your ORCID.",
+        "orcid_mismatch": "Surname does not match the ORCID profile. Please enter YOUR surname and ORCID.",
         "error": "Authentication error: {error}"
     },
     "api": {

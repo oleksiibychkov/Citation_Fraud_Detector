@@ -44,10 +44,7 @@ def require_auth() -> dict | None:
         verified, real_name = _verify_orcid(surname, orcid)
 
     if not verified:
-        if real_name:
-            st.error(t("auth.orcid_mismatch", input=surname, actual=real_name))
-        else:
-            st.error(t("auth.orcid_not_found"))
+        st.error(t("auth.orcid_mismatch"))
         return None
 
     # Try to find or register user
