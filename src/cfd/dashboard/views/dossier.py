@@ -99,6 +99,9 @@ def render():
         st.session_state["dossier_scopus_id"] = scopus_id
         st.session_state["dossier_orcid"] = orcid
 
+        # Log analysis for admin tracking
+        _log_analysis(author_name, scopus_id, orcid, result)
+
     # --- Handle "Re-analyze" ---
     if reanalyze_clicked:
         cached_data = st.session_state.get("dossier_author_data")
@@ -387,3 +390,31 @@ def _render_visualizations(author_data, result):
         st.warning(t("dashboard.viz_import_error"))
     except Exception as e:
         st.warning(t("dashboard.viz_build_error", error=str(e)))
+
+
+def _log_analysis(author_name: str, scopus_id: str, orcid: str, result) -> None:
+    """Log analysis to analysis_log table for admin tracking."""
+    try:
+        user = st.session_state.get("auth_user")
+        if not user:
+            return
+
+        from cfd.config.settings import Settings
+        from cfd.db.client import get_supabase_client
+
+        settings = Settings()
+        if not settings.supabase_url or not settings.supabase_key:
+            return
+
+        client = get_supabase_client(settings)
+        client.table("analysis_log").insert({
+            "user_orcid": user.get("orcid", ""),
+            "user_surname": user.get("surname", ""),
+            "author_name": author_name,
+            "scopus_id": scopus_id or None,
+            "author_orcid": orcid or None,
+            "fraud_score": round(result.fraud_score, 4) if result else None,
+            "confidence_level": result.confidence_level if result else None,
+        }).execute()
+    except Exception:
+        pass  # Don't break analysis if logging fails

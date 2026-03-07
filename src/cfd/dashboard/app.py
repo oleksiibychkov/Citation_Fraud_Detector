@@ -18,6 +18,7 @@ _USER_PAGES = ["dossier"]
 
 # Pages available only to admin
 _ADMIN_PAGES = [
+    "users",
     "settings",
     # "overview",
     # "compare",
@@ -27,6 +28,7 @@ _ADMIN_PAGES = [
 # Map page key -> translation key in locale
 _PAGE_I18N = {
     "dossier": "dashboard.dossier",
+    "users": "dashboard.users",
     "settings": "dashboard.settings",
     # "overview": "dashboard.overview",
     # "compare": "dashboard.compare",
@@ -36,6 +38,7 @@ _PAGE_I18N = {
 # Map page key -> module to import
 _PAGE_MODULES = {
     "dossier": "cfd.dashboard.views.dossier",
+    "users": "cfd.dashboard.views.users",
     "settings": "cfd.dashboard.views.settings",
     # "overview": "cfd.dashboard.views.overview",
     # "compare": "cfd.dashboard.views.compare",

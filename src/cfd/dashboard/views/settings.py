@@ -50,6 +50,7 @@ _THRESHOLD_GROUPS: dict[str, list[tuple]] = {
 
 # Tables to clear (in order that respects foreign keys)
 _DB_TABLES = [
+    "analysis_log",
     "report_evidence",
     "theorem_results",
     "indicators",

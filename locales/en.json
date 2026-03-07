@@ -159,6 +159,14 @@
         "params_changed": "Parameters changed: {count}",
         "all_defaults": "All parameters are default",
 
+        "users": "Users",
+        "users_header": "Registered Users",
+        "users_empty": "No registered users.",
+        "users_total": "Total users: {count}",
+        "users_registered": "registered",
+        "users_no_queries": "No analyses performed yet.",
+        "users_query_count": "Analyses performed: {count}",
+
         "clear_db_header": "Clear Database",
         "clear_db_warning": "This will permanently delete ALL data from the database: authors, publications, citations, analysis results, watchlist entries. This action cannot be undone!",
         "clear_db_btn": "Clear All Data",
