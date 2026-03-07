@@ -115,6 +115,11 @@ class Settings(BaseSettings):
     # Admin ORCIDs (comma-separated)
     admin_orcids: str = ""
 
+    # ORCID OAuth
+    orcid_client_id: str = ""
+    orcid_client_secret: str = ""
+    orcid_redirect_uri: str = ""
+
     # Algorithm version
     algorithm_version: str = "5.0.0"
 

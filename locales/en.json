@@ -203,6 +203,10 @@
         "register_failed": "Registration failed. Please try again.",
         "verifying_orcid": "Verifying ORCID...",
         "orcid_mismatch": "Surname does not match the ORCID profile. Please enter YOUR surname and ORCID.",
+        "login_orcid_btn": "Log in with ORCID",
+        "oauth_hint": "You will be redirected to orcid.org to verify your identity.",
+        "oauth_failed": "ORCID authentication failed. Please try again.",
+        "manual_mode": "ORCID OAuth is not configured. Using manual verification.",
         "error": "Authentication error: {error}"
     },
     "api": {
