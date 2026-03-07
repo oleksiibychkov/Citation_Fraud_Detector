@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import logging
+
 import streamlit as st
 
 from cfd.i18n.translator import t
+
+logger = logging.getLogger(__name__)
 
 
 def require_auth() -> dict | None:
@@ -35,6 +39,17 @@ def require_auth() -> dict | None:
         st.error(t("auth.orcid_invalid"))
         return None
 
+    # Verify surname against ORCID public API
+    with st.spinner(t("auth.verifying_orcid")):
+        verified, real_name = _verify_orcid(surname, orcid)
+
+    if not verified:
+        if real_name:
+            st.error(t("auth.orcid_mismatch", input=surname, actual=real_name))
+        else:
+            st.error(t("auth.orcid_not_found"))
+        return None
+
     # Try to find or register user
     user = _find_or_register(surname, orcid)
     if user:
@@ -58,6 +73,52 @@ def _is_valid_orcid(orcid: str) -> bool:
     """Basic ORCID format validation (0000-0000-0000-000X)."""
     import re
     return bool(re.match(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$", orcid))
+
+
+def _verify_orcid(surname: str, orcid: str) -> tuple[bool, str | None]:
+    """Verify surname against ORCID public API.
+
+    Returns (verified, actual_name_or_None).
+    """
+    import urllib.request
+    import json
+
+    url = f"https://pub.orcid.org/v3.0/{orcid}/person"
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        logger.warning("ORCID API request failed for %s", orcid, exc_info=True)
+        # If API is unreachable, allow login (don't block users due to API issues)
+        return True, None
+
+    # Extract family name from ORCID profile
+    name_data = data.get("name")
+    if not name_data:
+        return False, None
+
+    family_name = (name_data.get("family-name") or {}).get("value", "")
+    given_names = (name_data.get("given-names") or {}).get("value", "")
+
+    if not family_name:
+        # Profile has no public name — can't verify, allow
+        return True, None
+
+    # Compare case-insensitive
+    input_lower = surname.lower().strip()
+    family_lower = family_name.lower().strip()
+
+    if input_lower == family_lower:
+        return True, family_name
+
+    # Also check if user entered full name (surname + given name)
+    full_name = f"{family_name} {given_names}".strip()
+    if input_lower in family_lower or family_lower in input_lower:
+        return True, family_name
+
+    return False, full_name
 
 
 def _find_or_register(surname: str, orcid: str) -> dict | None:
