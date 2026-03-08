@@ -192,11 +192,11 @@ def _run_journal_analysis(journal_name: str, issn: str):
     try:
         from cfd.analysis.journal_pipeline import analyze_journal
         from cfd.config.settings import Settings
-        from cfd.data.http_client import CachedHttpClient
+        from cfd.data.http_client import CachedHttpClient, RateLimiter
 
         settings = Settings()
         http_client = CachedHttpClient(
-            rate_limiters={"openalex": settings.openalex_requests_per_second},
+            rate_limiter=RateLimiter(settings.openalex_requests_per_second),
             max_retries=settings.max_retries,
         )
 

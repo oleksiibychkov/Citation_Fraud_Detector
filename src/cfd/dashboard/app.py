@@ -19,6 +19,7 @@ _USER_PAGES = ["dossier"]
 # Pages available only to admin
 _ADMIN_PAGES = [
     "journal_dossier",
+    "organization",
     "users",
     "settings",
     # "overview",
@@ -30,6 +31,7 @@ _ADMIN_PAGES = [
 _PAGE_I18N = {
     "dossier": "dashboard.dossier",
     "journal_dossier": "dashboard.journal_dossier",
+    "organization": "dashboard.organization",
     "users": "dashboard.users",
     "settings": "dashboard.settings",
     # "overview": "dashboard.overview",
@@ -41,6 +43,7 @@ _PAGE_I18N = {
 _PAGE_MODULES = {
     "dossier": "cfd.dashboard.views.dossier",
     "journal_dossier": "cfd.dashboard.views.journal_dossier",
+    "organization": "cfd.dashboard.views.organization",
     "users": "cfd.dashboard.views.users",
     "settings": "cfd.dashboard.views.settings",
     # "overview": "cfd.dashboard.views.overview",

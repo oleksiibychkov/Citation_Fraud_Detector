@@ -85,9 +85,10 @@ def analyze_journal(
     # Step 1: Collect data
     if http_client is None:
         from cfd.config.settings import Settings
+        from cfd.data.http_client import RateLimiter
         settings = Settings()
         http_client = CachedHttpClient(
-            rate_limiters={"openalex": settings.openalex_requests_per_second},
+            rate_limiter=RateLimiter(settings.openalex_requests_per_second),
             max_retries=settings.max_retries,
         )
 
